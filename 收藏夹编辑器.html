@@ -6,8 +6,7 @@
     <title>收藏夹编辑器</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="编辑器.css">
-
-</head>
+    </head>
 <body>
     <div class="container">
         <!-- 头部 -->
@@ -47,10 +46,13 @@
                             <button id="addSectionBtn">
                                 <i class="fas fa-plus"></i> 添加区域
                             </button>
+                            <button id="toggleSectionSortBtn" class="btn-outline">
+                                <i class="fas fa-sort"></i> 排序
+                            </button>
                         </div>
                     </div>
                     
-                    <div id="sectionList">
+                    <div id="sectionList" class="section-sortable">
                         <!-- 区域将通过JavaScript动态生成 -->
                     </div>
                 </div>
@@ -62,6 +64,9 @@
                         <div class="section-controls">
                             <button id="addButtonBtn">
                                 <i class="fas fa-plus"></i> 添加按钮
+                            </button>
+                            <button id="toggleButtonSortBtn" class="btn-outline">
+                                <i class="fas fa-sort"></i> 排序
                             </button>
                         </div>
                     </div>
@@ -75,7 +80,7 @@
                         </select>
                     </div>
                     
-                    <div class="button-list" id="buttonList">
+                    <div class="button-list button-sortable" id="buttonList">
                         <!-- 按钮将通过JavaScript动态生成 -->
                     </div>
                 </div>
@@ -111,6 +116,7 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
     <script>
         // 数据结构
         let sections = [
@@ -169,6 +175,14 @@
         let currentFilter = 'all'; // 当前筛选条件
         let hasUnsavedChanges = false; // 跟踪未保存的更改
         
+        // 排序状态
+        let isSectionSorting = false;
+        let isButtonSorting = false;
+        
+        // Sortable实例
+        let sectionSortable = null;
+        let buttonSortable = null;
+        
         // 存储导入的HTML结构信息
         let importedHtmlStructure = {
             head: '',
@@ -201,9 +215,10 @@
             sections.forEach(section => {
                 const sectionEl = document.createElement('div');
                 sectionEl.className = 'button-item';
+                sectionEl.setAttribute('data-id', section.id);
                 sectionEl.innerHTML = `
                     <div class="button-header">
-                        <h4><i class="${section.icon}"></i> ${section.title}</h4>
+                        <h4><span class="drag-handle"><i class="fas fa-grip-vertical"></i></span><i class="${section.icon}"></i> ${section.title}</h4>
                         <div class="button-actions">
                             <button class="btn-outline" onclick="editSection('${section.id}')">
                                 <i class="fas fa-edit"></i>
@@ -217,6 +232,131 @@
                 `;
                 container.appendChild(sectionEl);
             });
+            
+            // 初始化或重新初始化排序功能
+            initSectionSortable();
+        }
+        
+        // 初始化区域排序功能
+        function initSectionSortable() {
+            const container = document.getElementById('sectionList');
+            
+            // 如果已存在Sortable实例，则销毁它
+            if (sectionSortable) {
+                sectionSortable.destroy();
+            }
+            
+            // 只有在排序模式下才启用排序
+            if (isSectionSorting) {
+                sectionSortable = new Sortable(container, {
+                    animation: 150,
+                    ghostClass: 'sortable-ghost',
+                    chosenClass: 'sortable-chosen',
+                    dragClass: 'sortable-drag',
+                    handle: '.drag-handle',
+                    onEnd: function(evt) {
+                        // 更新sections数组的顺序
+                        const newIndex = evt.newIndex;
+                        const oldIndex = evt.oldIndex;
+                        
+                        if (newIndex !== oldIndex) {
+                            const movedItem = sections[oldIndex];
+                            sections.splice(oldIndex, 1);
+                            sections.splice(newIndex, 0, movedItem);
+                            markUnsavedChanges();
+                            updatePreview();
+                        }
+                    }
+                });
+            }
+        }
+        
+        // 初始化按钮排序功能
+        function initButtonSortable() {
+            const container = document.getElementById('buttonList');
+            
+            // 如果已存在Sortable实例，则销毁它
+            if (buttonSortable) {
+                buttonSortable.destroy();
+            }
+            
+            // 只有在排序模式下才启用排序
+            if (isButtonSorting) {
+                buttonSortable = new Sortable(container, {
+                    animation: 150,
+                    ghostClass: 'sortable-ghost',
+                    chosenClass: 'sortable-chosen',
+                    dragClass: 'sortable-drag',
+                    handle: '.drag-handle',
+                    onEnd: function(evt) {
+                        // 更新buttons数组的顺序
+                        const newIndex = evt.newIndex;
+                        const oldIndex = evt.oldIndex;
+                        
+                        if (newIndex !== oldIndex) {
+                            // 获取当前显示的按钮（已筛选）
+                            let filteredButtons = buttons;
+                            if (currentFilter !== 'all') {
+                                filteredButtons = buttons.filter(button => button.section === currentFilter);
+                            }
+                            
+                            // 找到移动的按钮ID
+                            const movedButtonId = filteredButtons[oldIndex].id;
+                            
+                            // 找到该按钮在完整buttons数组中的索引
+                            const fullIndex = buttons.findIndex(b => b.id === movedButtonId);
+                            
+                            if (fullIndex !== -1) {
+                                // 从原位置移除
+                                const movedItem = buttons[fullIndex];
+                                buttons.splice(fullIndex, 1);
+                                
+                                // 计算在新顺序中的位置
+                                let newFullIndex = 0;
+                                if (newIndex > 0) {
+                                    // 找到新位置前一个按钮在完整数组中的索引
+                                    const prevButtonId = filteredButtons[newIndex - 1].id;
+                                    const prevIndex = buttons.findIndex(b => b.id === prevButtonId);
+                                    newFullIndex = prevIndex + 1;
+                                }
+                                
+                                // 插入到新位置
+                                buttons.splice(newFullIndex, 0, movedItem);
+                                markUnsavedChanges();
+                                updatePreview();
+                            }
+                        }
+                    }
+                });
+            }
+        }
+        
+        // 切换区域排序模式
+        function toggleSectionSort() {
+            isSectionSorting = !isSectionSorting;
+            document.getElementById('toggleSectionSortBtn').innerHTML = 
+                isSectionSorting ? 
+                '<i class="fas fa-check"></i> 完成排序' : 
+                '<i class="fas fa-sort"></i> 排序';
+                
+            document.getElementById('toggleSectionSortBtn').className = 
+                isSectionSorting ? 'btn-success' : 'btn-outline';
+                
+            initSectionSortable();
+        }
+        
+        // 切换按钮排序模式
+        function toggleButtonSort() {
+            isButtonSorting = !isButtonSorting;
+            document.getElementById('toggleButtonSortBtn').innerHTML = 
+                isButtonSorting ? 
+                '<i class="fas fa-check"></i> 完成排序' : 
+                '<i class="fas fa-sort"></i> 排序';
+                
+            document.getElementById('toggleButtonSortBtn').className = 
+                isButtonSorting ? 'btn-success' : 'btn-outline';
+                
+            initButtonSortable();
         }
         
         // 更新区域筛选器
@@ -262,9 +402,10 @@
                 const section = sections.find(s => s.id === button.section);
                 const buttonEl = document.createElement('div');
                 buttonEl.className = 'button-item';
+                buttonEl.setAttribute('data-id', button.id);
                 buttonEl.innerHTML = `
                     <div class="button-header">
-                        <h4><i class="${button.icon}"></i> ${button.title}</h4>
+                        <h4><span class="drag-handle"><i class="fas fa-grip-vertical"></i></span><i class="${button.icon}"></i> ${button.title}</h4>
                         <div class="button-actions">
                             <span class="tag" style="background: #eef2ff; color: #4a6cf7; padding: 4px 10px; border-radius: 20px; font-size: 0.85rem;">
                                 <i class="${section.icon}"></i> ${section.title}
@@ -284,6 +425,9 @@
                 `;
                 container.appendChild(buttonEl);
             });
+            
+            // 初始化或重新初始化排序功能
+            initButtonSortable();
         }
         
         // 更新预览
@@ -351,6 +495,11 @@
         
         // 显示区域表单
         function showSectionForm(section = null) {
+            // 退出排序模式
+            if (isSectionSorting) {
+                toggleSectionSort();
+            }
+            
             currentSection = section ? {...section} : null;
             
             const container = document.getElementById('sectionList');
@@ -483,6 +632,11 @@
         
         // 显示按钮表单
         function showButtonForm(button = null) {
+            // 退出排序模式
+            if (isButtonSorting) {
+                toggleButtonSort();
+            }
+            
             currentButton = button ? {...button} : null;
             
             // 确定默认区域 - 修复部分：使用当前筛选的区域
@@ -802,12 +956,20 @@
         
         hasUnsavedChanges = false;
         currentFilter = 'all';
+        isSectionSorting = false;
+        isButtonSorting = false;
         renderSections();
         updateSectionFilter();
         renderButtons();
         updatePreview();
         document.getElementById('htmlOutput').value = '';
         document.getElementById('sectionFilter').value = 'all';
+        
+        // 重置排序按钮状态
+        document.getElementById('toggleSectionSortBtn').innerHTML = '<i class="fas fa-sort"></i> 排序';
+        document.getElementById('toggleSectionSortBtn').className = 'btn-outline';
+        document.getElementById('toggleButtonSortBtn').innerHTML = '<i class="fas fa-sort"></i> 排序';
+        document.getElementById('toggleButtonSortBtn').className = 'btn-outline';
         
         // 重置拖放区域
         document.getElementById('dropZone').innerHTML = `
@@ -972,6 +1134,10 @@
             currentFilter = this.value;
             renderButtons();
         });
+        
+        // 排序按钮事件
+        document.getElementById('toggleSectionSortBtn').addEventListener('click', toggleSectionSort);
+        document.getElementById('toggleButtonSortBtn').addEventListener('click', toggleButtonSort);
         
         // 设置拖拽上传
         setupDragAndDrop();
