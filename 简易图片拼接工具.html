@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>图片拼接工具1.1</title>
+    <title>图片拼接工具1.1 - 修复拖动功能</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
@@ -310,8 +310,8 @@
         
         .result-preview {
             order: 3;
-            width: 100%;
-            max-height: 400px;
+            width: 600px; /* 固定宽度 */
+            height: 400px; /* 固定高度 */
             overflow: auto;
             background: rgba(0, 0, 0, 0.2);
             border-radius: 10px;
@@ -319,14 +319,43 @@
             justify-content: center;
             align-items: center;
             padding: 20px;
+            position: relative;
         }
         
         canvas {
             max-width: 100%;
+            max-height: 100%;
             border: 2px solid rgba(255, 255, 255, 0.3);
             border-radius: 8px;
             background: rgba(0, 0, 0, 0.2);
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .preview-controls {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 5px 10px;
+            border-radius: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 10;
+        }
+        
+        .preview-btn {
+            background: transparent;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 1rem;
+            padding: 5px;
+            border-radius: 50%;
+            transition: all 0.3s;
+        }
+        
+        .preview-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
         }
         
         .action-buttons {
@@ -537,6 +566,13 @@
             font-size: 3rem;
             color: white;
         }
+
+        @media (max-width: 768px) {
+            .result-preview {
+                width: 100%;
+                height: 300px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -684,6 +720,11 @@
                     <h3 class="panel-title"><i class="fas fa-image"></i> 拼接结果预览</h3>
                     <div id="previewSize"></div>
                     <div class="result-preview">
+                        <div class="preview-controls">
+                            <button class="preview-btn" id="zoomInBtn" title="放大"><i class="fas fa-search-plus"></i></button>
+                            <button class="preview-btn" id="zoomOutBtn" title="缩小"><i class="fas fa-search-minus"></i></button>
+                            <button class="preview-btn" id="resetZoomBtn" title="重置缩放"><i class="fas fa-sync-alt"></i></button>
+                        </div>
                         <canvas id="resultCanvas"></canvas>
                     </div>
                 </div>
@@ -765,6 +806,9 @@
             const qualityValue = document.getElementById('qualityValue');
             const previewSize = document.getElementById('previewSize');
             const lockBtn = document.getElementById('lockBtn');
+            const zoomInBtn = document.getElementById('zoomInBtn');
+            const zoomOutBtn = document.getElementById('zoomOutBtn');
+            const resetZoomBtn = document.getElementById('resetZoomBtn');
             
             // 全局变量
             let images = [];
@@ -772,6 +816,9 @@
             let lockAspectRatio = false;
             let processedCanvas = null;
             let currentSortMethod = 'natural'; // 当前排序方法
+            let zoomLevel = 1; // 预览缩放级别
+            let canvasWidth = 0; // 实际画布宽度
+            let canvasHeight = 0; // 实际画布高度
             
             // 初始化
             function init() {
@@ -984,6 +1031,24 @@
                 }, 3000);
             }
             
+            // 调整预览缩放
+            function adjustPreviewZoom() {
+                if (!canvasWidth || !canvasHeight) return;
+                
+                const previewContainer = document.querySelector('.result-preview');
+                const containerWidth = previewContainer.clientWidth - 40; // 减去padding
+                const containerHeight = previewContainer.clientHeight - 40;
+                
+                // 计算初始缩放比例，使整个图片可见
+                const scaleX = containerWidth / canvasWidth;
+                const scaleY = containerHeight / canvasHeight;
+                const initialScale = Math.min(scaleX, scaleY, 1);
+                
+                // 应用缩放
+                canvas.style.width = (canvasWidth * initialScale * zoomLevel) + 'px';
+                canvas.style.height = (canvasHeight * initialScale * zoomLevel) + 'px';
+            }
+            
             // 处理图片拼接
             function processImages() {
                 if (images.length === 0) {
@@ -1008,8 +1073,8 @@
                     }
                     
                     // 计算画布大小
-                    let canvasWidth = 0;
-                    let canvasHeight = 0;
+                    canvasWidth = 0;
+                    canvasHeight = 0;
                     let rows = 1;
                     let cols = 1;
                     
@@ -1160,6 +1225,10 @@
                     previewSize.textContent = `总尺寸: ${canvasWidth} × ${canvasHeight} 像素`;
                     previewSize.style.display = 'block';
                     
+                    // 重置缩放并调整预览
+                    zoomLevel = 1;
+                    adjustPreviewZoom();
+                    
                     showNotification('图片拼接完成！');
                 } catch (error) {
                     console.error('处理图片时出错:', error);
@@ -1301,6 +1370,29 @@
                 imgHeight.addEventListener('input', () => {
                     if (lockAspectRatio) {
                         imgWidth.value = imgHeight.value;
+                    }
+                });
+                
+                // 缩放按钮
+                zoomInBtn.addEventListener('click', () => {
+                    zoomLevel *= 1.2;
+                    adjustPreviewZoom();
+                });
+                
+                zoomOutBtn.addEventListener('click', () => {
+                    zoomLevel /= 1.2;
+                    adjustPreviewZoom();
+                });
+                
+                resetZoomBtn.addEventListener('click', () => {
+                    zoomLevel = 1;
+                    adjustPreviewZoom();
+                });
+                
+                // 窗口大小变化时调整预览
+                window.addEventListener('resize', () => {
+                    if (processedCanvas) {
+                        adjustPreviewZoom();
                     }
                 });
             }
