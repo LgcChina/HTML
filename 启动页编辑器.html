@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>收藏夹编辑器</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="编辑器.css">
     <style>
         :root {
             --primary: #4a6cf7;
@@ -1069,8 +1070,17 @@
             updatePreview();
         }
         
-        // 生成输出HTML
-        function generateOutput() {
+    // 存储导入的HTML的头部和样式信息
+    let importedHeadContent = '';
+    let importedStyles = '';
+    let importedHeaderContent = '';
+    let importedFooterContent = '';
+
+    // 生成输出HTML - 基于导入的HTML结构
+    function generateOutput() {
+        // 如果没有导入过HTML，使用默认结构
+        if (!importedHeadContent) {
+            // 使用默认的HTML结构
             let html = `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -1079,6 +1089,7 @@
     <title>我的收藏夹</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        /* 默认样式 */
         * {
             margin: 0;
             padding: 0;
@@ -1219,19 +1230,36 @@
         </header>
         `;
             
-            sections.forEach(section => {
-                const sectionButtons = buttons.filter(b => b.section === section.id);
-                
-                html += `
+        } else {
+            // 使用导入的HTML结构
+            let html = `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的收藏夹</title>
+    ${importedHeadContent}
+</head>
+<body>
+    ${importedHeaderContent}
+    <div class="container">
+        `;
+        }
+        
+        // 添加区域和按钮内容
+        sections.forEach(section => {
+            const sectionButtons = buttons.filter(b => b.section === section.id);
+            
+            html += `
         <section class="section">
             <h2 class="section-title">
                 <i class="${section.icon}"></i> ${section.title}
             </h2>
             <div class="link-grid">
                 `;
-                
-                sectionButtons.forEach(button => {
-                    html += `
+            
+            sectionButtons.forEach(button => {
+                html += `
                 <div class="link-card">
                     <a href="${button.link}" target="_blank">
                         <div class="link-icon">
@@ -1243,15 +1271,17 @@
                         </div>
                     </a>
                 </div>
-                    `;
-                });
-                
-                html += `
-            </div>
-        </section>
                 `;
             });
             
+            html += `
+            </div>
+        </section>
+            `;
+        });
+        
+        // 添加页脚
+        if (!importedFooterContent) {
             html += `
         <footer>
             <p>© 2023 我的收藏夹 | 最后更新: ${new Date().toLocaleDateString()}</p>
@@ -1259,215 +1289,121 @@
     </div>
 </body>
 </html>`;
-            
-            document.getElementById('htmlOutput').value = html;
+        } else {
+            html += `
+        ${importedFooterContent}
+    </div>
+</body>
+</html>`;
         }
         
-        // 复制到剪贴板
-        function copyToClipboard() {
-            const output = document.getElementById('htmlOutput');
-            output.select();
-            document.execCommand('copy');
-            
-            // 显示成功消息
-            const originalText = document.getElementById('copyBtn').innerHTML;
-            document.getElementById('copyBtn').innerHTML = '<i class="fas fa-check"></i> 已复制';
-            setTimeout(() => {
-                document.getElementById('copyBtn').innerHTML = originalText;
-            }, 2000);
-        }
+        document.getElementById('htmlOutput').value = html;
+    }
+
+    // 处理文件选择 - 增强版，提取HTML结构
+    function handleFileSelect(event) {
+        const file = event.target.files[0];
+        if (!file) return;
         
-        // 重置编辑器
-        function resetEditor() {
-            if (!confirm('确定要重置编辑器吗？所有未保存的更改将会丢失。')) {
-                return;
-            }
-            
-            sections = [
-                {
-                    id: 'docs',
-                    title: '文档',
-                    icon: 'fas fa-file-alt',
-                    description: '常用文档资源'
-                },
-                {
-                    id: 'tools',
-                    title: '工具',
-                    icon: 'fas fa-tools',
-                    description: '实用在线工具'
-                }
-            ];
-            
-            buttons = [
-                {
-                    id: 'doc1',
-                    section: 'docs',
-                    title: 'MDN文档',
-                    content: 'Web开发技术文档',
-                    icon: 'fab fa-md',
-                    link: 'https://developer.mozilla.org/'
-                },
-                {
-                    id: 'doc2',
-                    section: 'docs',
-                    title: 'GitHub',
-                    content: '代码托管平台',
-                    icon: 'fab fa-github',
-                    link: 'https://github.com/'
-                },
-                {
-                    id: 'tool1',
-                    section: 'tools',
-                    title: 'JSON格式化',
-                    content: '在线JSON工具',
-                    icon: 'fas fa-code',
-                    link: 'https://jsonformatter.org/'
-                },
-                {
-                    id: 'tool2',
-                    section: 'tools',
-                    title: '颜色选择器',
-                    content: '在线颜色工具',
-                    icon: 'fas fa-palette',
-                    link: 'https://htmlcolorcodes.com/'
-                }
-            ];
-            
-            hasUnsavedChanges = false;
-            currentFilter = 'all';
-            renderSections();
-            updateSectionFilter();
-            renderButtons();
-            updatePreview();
-            document.getElementById('htmlOutput').value = '';
-            document.getElementById('sectionFilter').value = 'all';
-        }
-        
-        // 设置拖拽上传
-        function setupDragAndDrop() {
-            const dropZone = document.getElementById('dropZone');
-            
-            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-                dropZone.addEventListener(eventName, preventDefaults, false);
-            });
-            
-            ['dragenter', 'dragover'].forEach(eventName => {
-                dropZone.addEventListener(eventName, highlight, false);
-            });
-            
-            ['dragleave', 'drop'].forEach(eventName => {
-                dropZone.addEventListener(eventName, unhighlight, false);
-            });
-            
-            dropZone.addEventListener('drop', handleDrop, false);
-        }
-        
-        function preventDefaults(e) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
-        
-        function highlight() {
-            document.getElementById('dropZone').classList.add('dragover');
-        }
-        
-        function unhighlight() {
-            document.getElementById('dropZone').classList.remove('dragover');
-        }
-        
-        function handleDrop(e) {
-            const dt = e.dataTransfer;
-            const files = dt.files;
-            
-            if (files.length) {
-                handleFileSelect({ target: { files } });
-            }
-        }
-        
-        function handleFileSelect(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            
-            if (file.type === 'text/html' || file.name.endsWith('.html')) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    try {
-                        // 解析HTML文件内容
-                        const content = e.target.result;
-                        const parser = new DOMParser();
-                        const doc = parser.parseFromString(content, 'text/html');
-                        
-                        // 提取区域和按钮数据
-                        const parsedSections = [];
-                        const parsedButtons = [];
-                        
-                        // 查找所有区域
-                        const sectionElements = doc.querySelectorAll('.section');
-                        sectionElements.forEach(sectionEl => {
-                            const titleEl = sectionEl.querySelector('.section-title');
-                            if (titleEl) {
-                                const iconEl = titleEl.querySelector('i');
-                                const section = {
-                                    id: 'section' + Date.now() + Math.random().toString(36).substr(2, 5),
-                                    title: titleEl.textContent.trim(),
-                                    icon: iconEl ? iconEl.className : 'fas fa-folder',
-                                    description: ''
-                                };
-                                parsedSections.push(section);
-                                
-                                // 查找该区域下的所有按钮
-                                const linkCards = sectionEl.querySelectorAll('.link-card');
-                                linkCards.forEach(card => {
-                                    const linkEl = card.querySelector('a');
-                                    const iconEl = card.querySelector('.link-icon i');
-                                    const titleEl = card.querySelector('.link-content h3');
-                                    const contentEl = card.querySelector('.link-content p');
-                                    
-                                    if (linkEl && titleEl) {
-                                        parsedButtons.push({
-                                            id: 'button' + Date.now() + Math.random().toString(36).substr(2, 5),
-                                            section: section.id,
-                                            title: titleEl.textContent.trim(),
-                                            content: contentEl ? contentEl.textContent.trim() : '',
-                                            icon: iconEl ? iconEl.className : 'fas fa-link',
-                                            link: linkEl.getAttribute('href')
-                                        });
-                                    }
-                                });
-                            }
-                        });
-                        
-                        // 更新数据
-                        if (parsedSections.length > 0) {
-                            sections = parsedSections;
-                            buttons = parsedButtons;
-                            
-                            // 更新UI
-                            renderSections();
-                            updateSectionFilter();
-                            renderButtons();
-                            updatePreview();
-                            
-                            document.getElementById('dropZone').innerHTML = `
-                                <i class="fas fa-check-circle" style="color: #28a745;"></i>
-                                <h3>已加载: ${file.name}</h3>
-                                <p>开始编辑您的收藏夹</p>
-                            `;
-                            
-                            hasUnsavedChanges = false;
-                        } else {
-                            alert('无法从文件中提取有效的收藏夹数据');
+        if (file.type === 'text/html' || file.name.endsWith('.html')) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    // 解析HTML文件内容
+                    const content = e.target.result;
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(content, 'text/html');
+                    
+                    // 提取head内容（除了title和viewport）
+                    const head = doc.head;
+                    let headContent = '';
+                    for (let i = 0; i < head.children.length; i++) {
+                        const child = head.children[i];
+                        if (child.tagName !== 'TITLE' && 
+                            !(child.tagName === 'META' && child.getAttribute('name') === 'viewport')) {
+                            headContent += child.outerHTML + '\n    ';
                         }
-                    } catch (error) {
-                        console.error('解析文件时出错:', error);
-                        alert('解析文件时出错，请确保文件格式正确');
                     }
-                };
-                reader.readAsText(file);
-            } else {
-                alert('请上传HTML文件');
-            }
+                    importedHeadContent = headContent;
+                    
+                    // 提取header和footer内容
+                    const header = doc.querySelector('header');
+                    importedHeaderContent = header ? header.outerHTML : '';
+                    
+                    const footer = doc.querySelector('footer');
+                    importedFooterContent = footer ? footer.outerHTML : '';
+                    
+                    // 提取区域和按钮数据
+                    const parsedSections = [];
+                    const parsedButtons = [];
+                    
+                    // 查找所有区域
+                    const sectionElements = doc.querySelectorAll('.section');
+                    sectionElements.forEach(sectionEl => {
+                        const titleEl = sectionEl.querySelector('.section-title');
+                        if (titleEl) {
+                            const iconEl = titleEl.querySelector('i');
+                            const section = {
+                                id: 'section' + Date.now() + Math.random().toString(36).substr(2, 5),
+                                title: titleEl.textContent.trim(),
+                                icon: iconEl ? iconEl.className : 'fas fa-folder',
+                                description: ''
+                            };
+                            parsedSections.push(section);
+                            
+                            // 查找该区域下的所有按钮
+                            const linkCards = sectionEl.querySelectorAll('.link-card');
+                            linkCards.forEach(card => {
+                                const linkEl = card.querySelector('a');
+                                const iconEl = card.querySelector('.link-icon i') || card.querySelector('.link-icon');
+                                const titleEl = card.querySelector('.link-content h3');
+                                const contentEl = card.querySelector('.link-content p');
+                                
+                                if (linkEl && titleEl) {
+                                    parsedButtons.push({
+                                        id: 'button' + Date.now() + Math.random().toString(36).substr(2, 5),
+                                        section: section.id,
+                                        title: titleEl.textContent.trim(),
+                                        content: contentEl ? contentEl.textContent.trim() : '',
+                                        icon: iconEl ? (iconEl.className || 'fas fa-link') : 'fas fa-link',
+                                        link: linkEl.getAttribute('href')
+                                    });
+                                }
+                            });
+                        }
+                    });
+                    
+                    // 更新数据
+                    if (parsedSections.length > 0) {
+                        sections = parsedSections;
+                        buttons = parsedButtons;
+                        
+                        // 更新UI
+                        renderSections();
+                        updateSectionFilter();
+                        renderButtons();
+                        updatePreview();
+                        
+                        document.getElementById('dropZone').innerHTML = `
+                            <i class="fas fa-check-circle" style="color: #28a745;"></i>
+                            <h3>已加载: ${file.name}</h3>
+                            <p>开始编辑您的收藏夹</p>
+                        `;
+                        
+                        hasUnsavedChanges = false;
+                    } else {
+                        alert('无法从文件中提取有效的收藏夹数据');
+                    }
+                } catch (error) {
+                    console.error('解析文件时出错:', error);
+                    alert('解析文件时出错，请确保文件格式正确');
+                }
+            };
+            reader.readAsText(file);
+        } else {
+            alert('请上传HTML文件');
         }
+    }
         
         // DOM加载完成后初始化
         document.addEventListener('DOMContentLoaded', function() {
