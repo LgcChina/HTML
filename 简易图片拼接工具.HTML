@@ -1,0 +1,1223 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图片拼接工具1.0</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        :root {
+            --primary: #4361ee;
+            --secondary: #3f37c9;
+            --accent: #4cc9f0;
+            --dark: #1d3557;
+            --light: #f8f9fa;
+            --success: #2ec4b6;
+            --danger: #e71d36;
+            --warning: #ff9f1c;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #2c3e50, #4a6491, #8a9aaf);
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+        }
+        
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            text-align: center;
+            padding: 30px 0;
+            margin-bottom: 30px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+        }
+        
+        h1 {
+            font-size: 2.8rem;
+            margin-bottom: 15px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+            background: linear-gradient(to right, var(--accent), #fff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .version-badge {
+            display: inline-block;
+            background: var(--accent);
+            color: white;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            margin-left: 15px;
+            vertical-align: super;
+            font-weight: bold;
+            text-shadow: none;
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.6;
+            color: rgba(255, 255, 255, 0.85);
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        @media (max-width: 1100px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .panel {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+        
+        .panel-title {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .panel-title i {
+            color: var(--accent);
+        }
+        
+        .upload-area {
+            border: 3px dashed rgba(255, 255, 255, 0.5);
+            border-radius: 10px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(0, 0, 0, 0.2);
+        }
+        
+        .upload-area:hover {
+            border-color: var(--accent);
+            background: rgba(255, 255, 255, 0.15);
+        }
+        
+        .upload-area i {
+            font-size: 4rem;
+            margin-bottom: 15px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        .upload-area h3 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .upload-area p {
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 15px;
+        }
+        
+        .thumbnail-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+            padding: 10px;
+        }
+        
+        .thumbnail-item {
+            position: relative;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+            aspect-ratio: 1;
+        }
+        
+        .thumbnail-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .thumbnail-name {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 3px 5px;
+            font-size: 0.7rem;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .sort-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .control-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .control-group {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+        }
+        
+        .control-group h3 {
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+            color: var(--accent);
+            white-space: nowrap;
+        }
+        
+        .option-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        
+        .option-row label {
+            flex: 1;
+            font-size: 0.95rem;
+            white-space: nowrap;
+        }
+        
+        select, option {
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 5px;
+            padding: 8px 12px;
+            color: #333;
+            width: 100%;
+        }
+        
+        option {
+            background: #f8f9fa;
+            color: #333;
+        }
+        
+        input[type="number"], input[type="color"] {
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 5px;
+            padding: 8px 12px;
+            color: white;
+            width: 100%;
+        }
+        
+        input[type="color"] {
+            height: 40px;
+            cursor: pointer;
+        }
+        
+        .size-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 5px;
+            align-items: center;
+        }
+        
+        .size-controls input {
+            width: 80px;
+        }
+        
+        .lock-btn {
+            background: transparent;
+            border: none;
+            color: var(--accent);
+            cursor: pointer;
+            font-size: 1.2rem;
+            padding: 5px;
+            border-radius: 50%;
+            transition: all 0.3s;
+        }
+        
+        .lock-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .result-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+            gap: 15px;
+        }
+        
+        .result-container h3 {
+            order: 1;
+        }
+        
+        #previewSize {
+            order: 2;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+        }
+        
+        .result-preview {
+            order: 3;
+            width: 100%;
+            max-height: 400px;
+            overflow: auto;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        canvas {
+            max-width: 100%;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.2);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .action-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 12px 25px;
+            font-size: 1.1rem;
+            border: none;
+            border-radius: 50px;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+            background: linear-gradient(to right, var(--secondary), var(--primary));
+        }
+        
+        button:active {
+            transform: translateY(1px);
+        }
+        
+        button:disabled {
+            background: linear-gradient(to right, #cccccc, #999999);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .btn-download {
+            background: linear-gradient(to right, var(--success), #2ca391);
+        }
+        
+        .btn-download:hover {
+            background: linear-gradient(to right, #2ca391, var(--success));
+        }
+        
+        .btn-reset {
+            background: linear-gradient(to right, var(--warning), #e65c00);
+        }
+        
+        .btn-reset:hover {
+            background: linear-gradient(to right, #e65c00, var(--warning));
+        }
+        
+        .info-section {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .feature-card {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 12px;
+            border-radius: 10px;
+            transition: transform 0.3s ease;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-3px);
+        }
+        
+        .feature-card i {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+            color: var(--accent);
+        }
+        
+        .feature-card h3 {
+            margin-bottom: 8px;
+            font-size: 1rem;
+        }
+        
+        .feature-card p {
+            font-size: 0.85rem;
+            line-height: 1.4;
+            color: rgba(255, 255, 255, 0.85);
+        }
+        
+        footer {
+            text-align: center;
+            padding: 20px;
+            margin-top: 20px;
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        .status-bar {
+            margin-top: 15px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 5px;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            border-radius: 8px;
+            background: var(--success);
+            color: white;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            transform: translateX(150%);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+        }
+        
+        .notification.warning {
+            background: var(--warning);
+        }
+        
+        .info-text {
+            font-size: 0.85rem;
+            color: var(--accent);
+            margin-top: 5px;
+        }
+        
+        .fixed-control {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 10px 15px;
+            border-radius: 50px;
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            font-size: 0.9rem;
+        }
+        
+        .fixed-control span {
+            color: var(--accent);
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-image"></i> 图片拼接工具<span class="version-badge">v1.0</span></h1>
+            <p class="subtitle">在本地浏览器中实现基本图像拼接功能：支持多图批量处理、多种拼接模式、自定义尺寸和背景处理</p>
+        </header>
+        
+        <div class="main-content">
+            <div class="panel">
+                <div class="panel-title">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <h2>图片上传与管理</h2>
+                </div>
+                
+                <div class="upload-area" id="dropZone">
+                    <i class="fas fa-images"></i>
+                    <h3>拖放图片到此处</h3>
+                    <p>或点击选择文件（支持多选）</p>
+                    <input type="file" id="fileInput" accept="image/*" multiple style="display: none;">
+                </div>
+                
+                <div class="sort-controls">
+                    <button id="sortAscBtn"><i class="fas fa-sort-alpha-down"></i> 文件名排序</button>
+                    <button id="sortDescBtn"><i class="fas fa-sort-alpha-up-alt"></i> 文件名倒序</button>
+                    <button id="clearBtn" class="btn-reset"><i class="fas fa-trash-alt"></i> 清空列表</button>
+                </div>
+                
+                <div class="thumbnail-container" id="thumbnailContainer">
+                    <div class="empty-notice" id="emptyNotice">
+                        <p>暂无图片，请上传图片...</p>
+                    </div>
+                </div>
+                
+                <div class="status-bar" id="statusBar">
+                    已选择 <span id="imageCount">0</span> 张图片 | 最大尺寸: <span id="maxSize">未计算</span>
+                </div>
+            </div>
+            
+            <div class="panel">
+                <div class="panel-title">
+                    <i class="fas fa-sliders-h"></i>
+                    <h2>拼接配置</h2>
+                </div>
+                
+                <div class="control-grid">
+                    <div class="control-group">
+                        <h3><i class="fas fa-border-all"></i> 拼接模式</h3>
+                        <div class="option-row">
+                            <label for="layoutMode">布局方式</label>
+                            <select id="layoutMode">
+                                <option value="horizontal">横向拼接</option>
+                                <option value="vertical">纵向拼接</option>
+                                <option value="grid">宫格模式</option>
+                            </select>
+                        </div>
+                        
+                        <div id="gridControls" style="display: none;">
+                            <div class="option-row">
+                                <label for="colsPerRow">每行图片数</label>
+                                <input type="number" id="colsPerRow" min="1" value="3">
+                            </div>
+                            <div class="option-row">
+                                <label for="rowsPerCol">每列图片数</label>
+                                <input type="number" id="rowsPerCol" min="1" value="3">
+                            </div>
+                        </div>
+                        
+                        <div class="option-row">
+                            <label for="spacing">图片间距</label>
+                            <input type="number" id="spacing" min="0" value="0">
+                        </div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <h3><i class="fas fa-fill"></i> 背景设置</h3>
+                        <div class="option-row">
+                            <label for="bgColor">背景颜色</label>
+                            <input type="color" id="bgColor" value="#000000">
+                        </div>
+                        <div class="option-row">
+                            <label for="fillTransparent">填充透明区域</label>
+                            <input type="checkbox" id="fillTransparent" checked>
+                        </div>
+                        <p class="info-text" id="jpegWarning" style="display: none; color: var(--warning);">
+                            <i class="fas fa-exclamation-triangle"></i> JPEG格式不支持透明背景，将使用背景色填充
+                        </p>
+                    </div>
+                    
+                    <div class="control-group">
+                        <h3><i class="fas fa-ruler-combined"></i> 图片尺寸设置</h3>
+                        <div class="option-row">
+                            <label for="uniformSize">统一每个图片尺寸</label>
+                            <input type="checkbox" id="uniformSize">
+                        </div>
+                        <div id="sizeControls" style="display: none; margin-top: 10px;">
+                            <div class="option-row">
+                                <label></label>
+                                <div class="size-controls">
+                                    <input type="number" id="imgWidth" min="1" value="128" placeholder="宽度">
+                                    <span style="margin: 0 5px;"></span>
+                                    <input type="number" id="imgHeight" min="1" value="128" placeholder="高度">
+                                    <button class="lock-btn" id="lockBtn"><i class="fas fa-lock-open"></i></button>
+                                </div>
+                            </div>
+                            <div class="option-row">
+                                <label for="sizeMode">处理方式</label>
+                                <select id="sizeMode">
+                                    <option value="stretch">拉伸填充</option>
+                                    <option value="cover">居中裁剪</option>
+                                    <option value="center">仅居中图片</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <h3><i class="fas fa-cog"></i> 输出设置</h3>
+                        <div class="option-row">
+                            <label for="outputFormat">输出格式</label>
+                            <select id="outputFormat">
+                                <option value="png">PNG (透明背景)</option>
+                                <option value="jpeg">JPEG (高压缩)</option>
+                            </select>
+                        </div>
+                        <div class="option-row">
+                            <label for="quality">JPEG质量</label>
+                            <input type="range" id="quality" min="50" max="100" value="90">
+                            <span id="qualityValue">90%</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="action-buttons">
+                    <button id="processBtn" disabled><i class="fas fa-cogs"></i> 开始拼接</button>
+                    <button id="downloadBtn" class="btn-download" disabled><i class="fas fa-download"></i> 下载结果</button>
+                    <button id="resetBtn" class="btn-reset"><i class="fas fa-redo-alt"></i> 重置设置</button>
+                </div>
+                
+                <div class="result-container">
+                    <h3 class="panel-title"><i class="fas fa-image"></i> 拼接结果预览</h3>
+                    <div id="previewSize"></div>
+                    <div class="result-preview">
+                        <canvas id="resultCanvas"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="info-section">
+            <h2 class="panel-title"><i class="fas fa-star"></i> 功能特色</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <i class="fas fa-layer-group"></i>
+                    <h3>多图拼接</h3>
+                    <p>支持一次性拼接多张图片，不受数量限制，自动调整布局</p>
+                </div>
+                <div class="feature-card">
+                    <i class="fas fa-th"></i>
+                    <h3>灵活布局</h3>
+                    <p>提供横向、纵向和宫格三种拼接方式，宫格模式可自定义行列数</p>
+                </div>
+                <div class="feature-card">
+                    <i class="fas fa-expand-arrows-alt"></i>
+                    <h3>统一尺寸</h3>
+                    <p>支持将所有图片统一为相同尺寸，提供多种缩放裁剪选项</p>
+                </div>
+                <div class="feature-card">
+                    <i class="fas fa-fill-drip"></i>
+                    <h3>背景处理</h3>
+                    <p>支持透明背景处理和自定义背景色填充，完美处理PNG图像</p>
+                </div>
+                <div class="feature-card">
+                    <i class="fas fa-cloud-download-alt"></i>
+                    <h3>高效输出</h3>
+                    <p>所有处理在浏览器中完成，支持PNG和JPEG格式输出，保障隐私安全</p>
+                </div>
+                <div class="feature-card">
+                    <i class="fas fa-mobile-alt"></i>
+                    <h3>响应式设计</h3>
+                    <p>适配各种设备屏幕尺寸，在桌面和移动设备上均有优异表现</p>
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            <p>图片拼接工具 v1.0 | 基于HTML5 Canvas技术 | 本地运行无需服务器 | © 2025</p>
+        </footer>
+    </div>
+
+    <div class="notification" id="notification">操作成功！</div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // DOM元素
+            const fileInput = document.getElementById('fileInput');
+            const uploadBtn = document.getElementById('uploadBtn');
+            const dropZone = document.getElementById('dropZone');
+            const thumbnailContainer = document.getElementById('thumbnailContainer');
+            const emptyNotice = document.getElementById('emptyNotice');
+            const imageCount = document.getElementById('imageCount');
+            const maxSize = document.getElementById('maxSize');
+            const sortAscBtn = document.getElementById('sortAscBtn');
+            const sortDescBtn = document.getElementById('sortDescBtn');
+            const clearBtn = document.getElementById('clearBtn');
+            const layoutMode = document.getElementById('layoutMode');
+            const gridControls = document.getElementById('gridControls');
+            const processBtn = document.getElementById('processBtn');
+            const downloadBtn = document.getElementById('downloadBtn');
+            const resetBtn = document.getElementById('resetBtn');
+            const canvas = document.getElementById('resultCanvas');
+            const ctx = canvas.getContext('2d');
+            const notification = document.getElementById('notification');
+            const jpegWarning = document.getElementById('jpegWarning');
+            const uniformSize = document.getElementById('uniformSize');
+            const sizeControls = document.getElementById('sizeControls');
+            const outputFormat = document.getElementById('outputFormat');
+            const qualitySlider = document.getElementById('quality');
+            const qualityValue = document.getElementById('qualityValue');
+            const previewSize = document.getElementById('previewSize');
+            const lockBtn = document.getElementById('lockBtn');
+            
+            // 全局变量
+            let images = [];
+            let sortedImages = [];
+            let lockAspectRatio = false;
+            let processedCanvas = null;
+            
+            // 初始化
+            function init() {
+                // 移除uploadBtn事件监听
+                if (uploadBtn) {
+                    uploadBtn.addEventListener('click', () => fileInput.click());
+                }
+                // 点击上传区域触发文件选择
+                dropZone.addEventListener('click', () => fileInput.click());
+                fileInput.addEventListener('change', handleFileSelect);
+                setupDragAndDrop();
+                setupEventListeners();
+                updateImageCount();
+                
+                // 初始化锁定按钮状态为解锁
+                lockBtn.innerHTML = '<i class="fas fa-lock-open"></i>';
+                lockAspectRatio = false;
+            }
+            
+            // 设置拖放功能
+            function setupDragAndDrop() {
+                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                    dropZone.addEventListener(eventName, preventDefaults, false);
+                });
+                
+                ['dragenter', 'dragover'].forEach(eventName => {
+                    dropZone.addEventListener(eventName, highlight, false);
+                });
+                
+                ['dragleave', 'drop'].forEach(eventName => {
+                    dropZone.addEventListener(eventName, unhighlight, false);
+                });
+                
+                dropZone.addEventListener('drop', handleDrop, false);
+            }
+            
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            
+            function highlight() {
+                dropZone.style.borderColor = '#7ed0e6';
+                dropZone.style.backgroundColor = 'rgba(126, 208, 230, 0.1)';
+            }
+            
+            function unhighlight() {
+                dropZone.style.borderColor = 'rgba(255, 255, 255, 0.4)';
+                dropZone.style.backgroundColor = 'rgba(0, 0, 0, 0.1)';
+            }
+            
+            function handleDrop(e) {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                handleFiles(files);
+            }
+            
+            function handleFileSelect(e) {
+                const files = e.target.files;
+                handleFiles(files);
+            }
+            
+            // 处理上传的文件
+            function handleFiles(files) {
+                if (!files.length) return;
+                
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    if (!file.type.match('image.*')) continue;
+                    
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const img = new Image();
+                        img.onload = function() {
+                            images.push({
+                                name: file.name,
+                                file: file,
+                                img: img,
+                                width: img.width,
+                                height: img.height,
+                                processed: false
+                            });
+                            updateThumbnails();
+                            updateImageCount();
+                            
+                            if (images.length > 0) {
+                                processBtn.disabled = false;
+                                emptyNotice.style.display = 'none';
+                            }
+                        };
+                        img.src = e.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                }
+                
+                showNotification(`成功添加 ${files.length} 张图片`);
+            }
+            
+            // 更新缩略图显示
+            function updateThumbnails() {
+                thumbnailContainer.innerHTML = '';
+                
+                if (images.length === 0) {
+                    thumbnailContainer.innerHTML = '<div class="empty-notice" id="emptyNotice"><p>暂无图片，请上传图片...</p></div>';
+                    return;
+                }
+                
+                // 默认使用原始顺序
+                sortedImages = [...images];
+                
+                images.forEach((image, index) => {
+                    const thumbnail = document.createElement('div');
+                    thumbnail.className = 'thumbnail-item';
+                    
+                    const img = document.createElement('img');
+                    img.src = image.img.src;
+                    img.alt = image.name;
+                    
+                    const name = document.createElement('div');
+                    name.className = 'thumbnail-name';
+                    name.textContent = image.name;
+                    
+                    thumbnail.appendChild(img);
+                    thumbnail.appendChild(name);
+                    thumbnailContainer.appendChild(thumbnail);
+                });
+            }
+            
+            // 排序图片
+            function sortImages(ascending = true) {
+                sortedImages = [...images].sort((a, b) => {
+                    const nameA = a.name.toLowerCase();
+                    const nameB = b.name.toLowerCase();
+                    return ascending ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA);
+                });
+                
+                thumbnailContainer.innerHTML = '';
+                
+                sortedImages.forEach(image => {
+                    const thumbnail = document.createElement('div');
+                    thumbnail.className = 'thumbnail-item';
+                    
+                    const img = document.createElement('img');
+                    img.src = image.img.src;
+                    img.alt = image.name;
+                    
+                    const name = document.createElement('div');
+                    name.className = 'thumbnail-name';
+                    name.textContent = image.name;
+                    
+                    thumbnail.appendChild(img);
+                    thumbnail.appendChild(name);
+                    thumbnailContainer.appendChild(thumbnail);
+                });
+                
+                showNotification(`已按文件名${ascending ? '正序' : '倒序'}排序`);
+            }
+            
+            // 更新图片计数
+            function updateImageCount() {
+                imageCount.textContent = images.length;
+                
+                if (images.length > 0) {
+                    const maxWidth = Math.max(...images.map(img => img.width));
+                    const maxHeight = Math.max(...images.map(img => img.height));
+                    maxSize.textContent = `${maxWidth}×${maxHeight} 像素`;
+                } else {
+                    maxSize.textContent = '未计算';
+                    emptyNotice.style.display = 'block';
+                }
+            }
+            
+            // 显示通知
+            function showNotification(message, isWarning = false) {
+                notification.textContent = message;
+                notification.className = isWarning ? 'notification warning' : 'notification';
+                notification.classList.add('show');
+                
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                    if (isWarning) {
+                        notification.classList.remove('warning');
+                    }
+                }, 3000);
+            }
+            
+            // 处理图片拼接
+            function processImages() {
+                if (images.length === 0) {
+                    showNotification('请先上传图片', true);
+                    return;
+                }
+                
+                try {
+                    const layout = layoutMode.value;
+                    const spacing = parseInt(document.getElementById('spacing').value) || 0;
+                    const bgColor = document.getElementById('bgColor').value;
+                    const fillTransparent = document.getElementById('fillTransparent').checked;
+                    const useUniformSize = uniformSize.checked;
+                    const sizeMode = document.getElementById('sizeMode').value;
+                    
+                    // 统一尺寸
+                    let uniformWidth = 0;
+                    let uniformHeight = 0;
+                    if (useUniformSize) {
+                        uniformWidth = parseInt(imgWidth.value) || 128;
+                        uniformHeight = parseInt(imgHeight.value) || 128;
+                    }
+                    
+                    // 计算画布大小
+                    let canvasWidth = 0;
+                    let canvasHeight = 0;
+                    let rows = 1;
+                    let cols = 1;
+                    
+                    if (layout === 'grid') {
+                        rows = parseInt(document.getElementById('rowsPerCol').value) || 3;
+                        cols = parseInt(document.getElementById('colsPerRow').value) || 3;
+                        
+                        // 计算网格所需行列数
+                        const totalImages = sortedImages.length;
+                        rows = Math.ceil(totalImages / cols);
+                        
+                        canvasWidth = cols * (useUniformSize ? uniformWidth : Math.max(...sortedImages.map(img => img.width))) + (cols - 1) * spacing;
+                        canvasHeight = rows * (useUniformSize ? uniformHeight : Math.max(...sortedImages.map(img => img.height))) + (rows - 1) * spacing;
+                    } else if (layout === 'horizontal') {
+                        canvasWidth = sortedImages.reduce((sum, img) => {
+                            return sum + (useUniformSize ? uniformWidth : img.width);
+                        }, 0) + spacing * (sortedImages.length - 1);
+                        canvasHeight = Math.max(...sortedImages.map(img => useUniformSize ? uniformHeight : img.height));
+                    } else { // vertical
+                        canvasHeight = sortedImages.reduce((sum, img) => {
+                            return sum + (useUniformSize ? uniformHeight : img.height);
+                        }, 0) + spacing * (sortedImages.length - 1);
+                        canvasWidth = Math.max(...sortedImages.map(img => useUniformSize ? uniformWidth : img.width));
+                    }
+                    
+                    // 设置画布尺寸
+                    canvas.width = canvasWidth;
+                    canvas.height = canvasHeight;
+                    
+                    // 清除画布
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    
+                    // 绘制背景 - 修复填充透明区域选项
+                    if (outputFormat.value === 'jpeg' || (outputFormat.value === 'png' && fillTransparent)) {
+                        ctx.fillStyle = bgColor;
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    }
+                    
+                    // 绘制图片
+                    let x = 0, y = 0;
+                    
+                    for (let i =  0; i < sortedImages.length; i++) {
+                        const img = sortedImages[i].img;
+                        
+                        // 当前图片尺寸
+                        let imgWidth = img.width;
+                        let imgHeight = img.height;
+                        
+                        // 如果统一尺寸，调整图片尺寸
+                        if (useUniformSize) {
+                            imgWidth = uniformWidth;
+                            imgHeight = uniformHeight;
+                        }
+                        
+                        // 计算位置
+                        let drawX = x;
+                        let drawY = y;
+                        
+                        // 仅当布局是水平或垂直且尺寸不统一时需要居中
+                        if (!useUniformSize) {
+                            if (layout === 'horizontal') {
+                                drawY = (canvasHeight - imgHeight) / 2;
+                            } else if (layout === 'vertical') {
+                                drawX = (canvasWidth - imgWidth) / 2;
+                            }
+                        }
+                        
+                        // 处理方式
+                        if (sizeMode === 'stretch') {
+                            // 拉伸填充
+                            if (useUniformSize) {
+                                ctx.drawImage(img, drawX, drawY, imgWidth, imgHeight);
+                            } else {
+                                ctx.drawImage(img, drawX, drawY);
+                            }
+                        } else if (sizeMode === 'cover') {
+                            // 居中裁剪
+                            if (useUniformSize) {
+                                const scale = Math.max(imgWidth / img.width, imgHeight / img.height);
+                                const newWidth = img.width * scale;
+                                const newHeight = img.height * scale;
+                                const offsetX = (imgWidth - newWidth) / 2;
+                                const offsetY = (imgHeight - newHeight) / 2;
+                                
+                                ctx.drawImage(img, 
+                                    drawX + offsetX, drawY + offsetY, 
+                                    newWidth, newHeight
+                                );
+                            } else {
+                                // 当不统一尺寸时，只在sizeMode为cover时居中裁剪
+                                const targetWidth = imgWidth;
+                                const targetHeight = imgHeight;
+                                const scale = Math.max(targetWidth / img.width, targetHeight / img.height);
+                                const newWidth = img.width * scale;
+                                const newHeight = img.height * scale;
+                                const offsetX = (targetWidth - newWidth) / 2;
+                                const offsetY = (targetHeight - newHeight) / 2;
+                                
+                                ctx.drawImage(img, 
+                                    drawX + offsetX, drawY + offsetY, 
+                                    newWidth, newHeight
+                                );
+                            }
+                        } else {
+                            // 仅居中图片
+                            if (useUniformSize) {
+                                // 仅居中图片
+                                const offsetX = (imgWidth - img.width) / 2;
+                                const offsetY = (imgHeight - img.height) / 2;
+                                
+                                // 透明区域填充只应用于统一尺寸的透明区域，不影响图片本身
+                                if (fillTransparent) {
+                                    ctx.fillStyle = bgColor;
+                                    ctx.fillRect(drawX, drawY, imgWidth, imgHeight);
+                                }
+                                
+                                ctx.drawImage(img, 
+                                    drawX + offsetX, drawY + offsetY, 
+                                    img.width, img.height
+                                );
+                            } else {
+                                // 不统一尺寸且仅居中图片
+                                drawX = (canvasWidth - img.width) / 2;
+                                drawY = (canvasHeight - img.height) / 2;
+                                ctx.drawImage(img, drawX, drawY);
+                            }
+                        }
+                        
+                        // 移动到下一个位置
+                        if (layout === 'grid') {
+                            if ((i + 1) % cols === 0) {
+                                x = 0;
+                                y += imgHeight + spacing;
+                            } else {
+                                x += imgWidth + spacing;
+                            }
+                        } else if (layout === 'horizontal') {
+                            x += imgWidth + spacing;
+                        } else {
+                            y += imgHeight + spacing;
+                        }
+                    }
+                    
+                    processedCanvas = canvas;
+                    downloadBtn.disabled = false;
+                    
+                    // 更新总尺寸提示
+                    previewSize.textContent = `总尺寸: ${canvasWidth} × ${canvasHeight} 像素`;
+                    previewSize.style.display = 'block';
+                    
+                    showNotification('图片拼接完成！');
+                } catch (error) {
+                    console.error('处理图片时出错:', error);
+                    showNotification(`处理失败: ${error.message}`, true);
+                }
+            }
+            
+            // 下载图片
+            function downloadImage() {
+                if (!processedCanvas) {
+                    showNotification('请先处理图片', true);
+                    return;
+                }
+                
+                try {
+                    const format = outputFormat.value;
+                    const filename = `拼接结果.${format}`;
+                    const quality = format === 'jpeg' ? parseInt(document.getElementById('quality').value) / 100 : 1;
+                    
+                    const dataURL = processedCanvas.toDataURL(`image/${format}`, quality);
+                    const link = document.createElement('a');
+                    link.download = filename;
+                    link.href = dataURL;
+                    link.click();
+                    
+                    showNotification('图片下载成功！');
+                } catch (error) {
+                    console.error('下载图片时出错:', error);
+                    showNotification(`下载失败: ${error.message}`, true);
+                }
+            }
+            
+            // 设置事件监听器
+            function setupEventListeners() {
+                // 排序按钮
+                sortAscBtn.addEventListener('click', () => sortImages(true));
+                sortDescBtn.addEventListener('click', () => sortImages(false));
+                
+                // 清空按钮
+                clearBtn.addEventListener('click', () => {
+                    images = [];
+                    sortedImages = [];
+                    updateThumbnails();
+                    updateImageCount();
+                    processBtn.disabled = true;
+                    downloadBtn.disabled = true;
+                    canvas.width = 0;
+                    canvas.height = 0;
+                    previewSize.textContent = '';
+                    showNotification('已清空所有图片');
+                });
+                
+                // 布局模式切换
+                layoutMode.addEventListener('change', () => {
+                    if (layoutMode.value === 'grid') {
+                        gridControls.style.display = 'block';
+                    } else {
+                        gridControls.style.display = 'none';
+                    }
+                });
+                
+                // 统一尺寸切换
+                uniformSize.addEventListener('change', () => {
+                    sizeControls.style.display = uniformSize.checked ? 'block' : 'none';
+                });
+                
+                // 输出格式变化
+                outputFormat.addEventListener('change', () => {
+                    if (outputFormat.value === 'jpeg') {
+                        jpegWarning.style.display = 'block';
+                        document.getElementById('fillTransparent').checked = true;
+                        document.getElementById('fillTransparent').disabled = true;
+                    } else {
+                        jpegWarning.style.display = 'none';
+                        document.getElementById('fillTransparent').disabled = false;
+                    }
+                });
+                
+                // 处理按钮
+                processBtn.addEventListener('click', processImages);
+                
+                // 下载按钮
+                downloadBtn.addEventListener('click', downloadImage);
+                
+                // 重置按钮
+                resetBtn.addEventListener('click', () => {
+                    document.getElementById('layoutMode').value = 'horizontal';
+                    document.getElementById('spacing').value = '0';
+                    document.getElementById('bgColor').value = '#000000';
+                    document.getElementById('fillTransparent').checked = true;
+                    document.getElementById('uniformSize').checked = false;
+                    document.getElementById('sizeMode').value = 'stretch';
+                    document.getElementById('outputFormat').value = 'png';
+                    document.getElementById('quality').value = '90';
+                    document.getElementById('qualityValue').textContent = '90%';
+                    document.getElementById('fillTransparent').disabled = false;
+                    
+                    gridControls.style.display = 'none';
+                    sizeControls.style.display = 'none';
+                    jpegWarning.style.display = 'none';
+                    previewSize.textContent = '';
+                    
+                    canvas.width = 0;
+                    canvas.height = 0;
+                    showNotification('设置已重置');
+                });
+                
+                // 锁定按钮
+                lockBtn.addEventListener('click', () => {
+                    lockAspectRatio = !lockAspectRatio;
+                    lockBtn.innerHTML = lockAspectRatio 
+                        ? '<i class="fas fa-lock"></i>' 
+                        : '<i class="fas fa-lock-open"></i>';
+                    
+                    if (lockAspectRatio) {
+                        imgHeight.value = imgWidth.value;
+                    }
+                });
+                
+                // 宽度变化同步高度
+                imgWidth.addEventListener('input', () => {
+                    if (lockAspectRatio) {
+                        imgHeight.value = imgWidth.value;
+                    }
+                });
+                
+                // 高度变化同步宽度
+                imgHeight.addEventListener('input', () => {
+                    if (lockAspectRatio) {
+                        imgWidth.value = imgHeight.value;
+                    }
+                });
+            }
+            
+            init();
+        });
+    </script>
+</body>
+</html>
