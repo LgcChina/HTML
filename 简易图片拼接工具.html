@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>图片拼接工具1.0</title>
+    <title>图片拼接工具1.1</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
@@ -492,12 +492,21 @@
             color: var(--accent);
             font-weight: bold;
         }
+        
+        .sort-notice {
+            background: rgba(255, 193, 7, 0.2);
+            border-left: 4px solid var(--warning);
+            padding: 10px 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+            font-size: 0.9rem;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1><i class="fas fa-image"></i> 图片拼接工具<span class="version-badge">v1.0</span></h1>
+            <h1><i class="fas fa-image"></i> 图片拼接工具<span class="version-badge">v1.1</span></h1>
             <p class="subtitle">在本地浏览器中实现基本图像拼接功能：支持多图批量处理、多种拼接模式、自定义尺寸和背景处理</p>
         </header>
         
@@ -516,8 +525,9 @@
                 </div>
                 
                 <div class="sort-controls">
-                    <button id="sortAscBtn"><i class="fas fa-sort-alpha-down"></i> 文件名排序</button>
+                    <button id="sortAscBtn"><i class="fas fa-sort-alpha-down"></i> 文件名正序</button>
                     <button id="sortDescBtn"><i class="fas fa-sort-alpha-up-alt"></i> 文件名倒序</button>
+                    <button id="sortNaturalBtn"><i class="fas fa-sort-numeric-down"></i> 自然排序</button>
                     <button id="clearBtn" class="btn-reset"><i class="fas fa-trash-alt"></i> 清空列表</button>
                 </div>
                 
@@ -671,15 +681,15 @@
                     <p>所有处理在浏览器中完成，支持PNG和JPEG格式输出，保障隐私安全</p>
                 </div>
                 <div class="feature-card">
-                    <i class="fas fa-mobile-alt"></i>
-                    <h3>响应式设计</h3>
-                    <p>适配各种设备屏幕尺寸，在桌面和移动设备上均有优异表现</p>
+                    <i class="fas fa-sort-alpha-down"></i>
+                    <h3>智能排序</h3>
+                    <p>使用自然排序算法，数字按数值大小排序（1, 2, 3, ..., 10, 11）</p>
                 </div>
             </div>
         </div>
         
         <footer>
-            <p>图片拼接工具 v1.0 | 基于HTML5 Canvas技术 | 本地运行无需服务器 | © 2025</p>
+            <p>图片拼接工具 v1.1 | 基于HTML5 Canvas技术 | 本地运行无需服务器 | © 2025</p>
         </footer>
     </div>
 
@@ -689,7 +699,6 @@
         document.addEventListener('DOMContentLoaded', function() {
             // DOM元素
             const fileInput = document.getElementById('fileInput');
-            const uploadBtn = document.getElementById('uploadBtn');
             const dropZone = document.getElementById('dropZone');
             const thumbnailContainer = document.getElementById('thumbnailContainer');
             const emptyNotice = document.getElementById('emptyNotice');
@@ -697,6 +706,7 @@
             const maxSize = document.getElementById('maxSize');
             const sortAscBtn = document.getElementById('sortAscBtn');
             const sortDescBtn = document.getElementById('sortDescBtn');
+            const sortNaturalBtn = document.getElementById('sortNaturalBtn');
             const clearBtn = document.getElementById('clearBtn');
             const layoutMode = document.getElementById('layoutMode');
             const gridControls = document.getElementById('gridControls');
@@ -720,13 +730,10 @@
             let sortedImages = [];
             let lockAspectRatio = false;
             let processedCanvas = null;
+            let currentSortMethod = 'natural'; // 当前排序方法
             
             // 初始化
             function init() {
-                // 移除uploadBtn事件监听
-                if (uploadBtn) {
-                    uploadBtn.addEventListener('click', () => fileInput.click());
-                }
                 // 点击上传区域触发文件选择
                 dropZone.addEventListener('click', () => fileInput.click());
                 fileInput.addEventListener('change', handleFileSelect);
@@ -827,10 +834,10 @@
                     return;
                 }
                 
-                // 默认使用原始顺序
-                sortedImages = [...images];
+                // 默认使用当前排序方法
+                applyCurrentSortMethod();
                 
-                images.forEach((image, index) => {
+                sortedImages.forEach((image, index) => {
                     const thumbnail = document.createElement('div');
                     thumbnail.className = 'thumbnail-item';
                     
@@ -848,34 +855,66 @@
                 });
             }
             
-            // 排序图片
-            function sortImages(ascending = true) {
-                sortedImages = [...images].sort((a, b) => {
-                    const nameA = a.name.toLowerCase();
-                    const nameB = b.name.toLowerCase();
-                    return ascending ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA);
-                });
+            // 自然排序算法修复
+            function naturalCompare(a, b, ascending = true) {
+                // 分割字符串为数字和非数字部分
+                const regEx = /(\d+)/g;
+                const aParts = a.toLowerCase().split(regEx);
+                const bParts = b.toLowerCase().split(regEx);
                 
-                thumbnailContainer.innerHTML = '';
+                for (let i = 0; i < Math.min(aParts.length, bParts.length); i++) {
+                    let aPart = aParts[i];
+                    let bPart = bParts[i];
+                    
+                    // 如果部分相同，继续下一部分
+                    if (aPart === bPart) continue;
+                    
+                    // 检查是否是数字
+                    let aIsNum = !isNaN(aPart);
+                    let bIsNum = !isNaN(bPart);
+                    
+                    // 如果都是数字，按数值比较
+                    if (aIsNum && bIsNum) {
+                        return ascending 
+                            ? parseInt(aPart) - parseInt(bPart) 
+                            : parseInt(bPart) - parseInt(aPart);
+                    } else if (aIsNum !== bIsNum) {
+                        // 一个数字一个非数字，数字优先
+                        return ascending 
+                            ? (aIsNum ? -1 : 1) 
+                            : (aIsNum ? 1 : -1);
+                    } else {
+                        // 都是非数字，按字符串比较
+                        return ascending 
+                            ? aPart.localeCompare(bPart) 
+                            : bPart.localeCompare(aPart);
+                    }
+                }
                 
-                sortedImages.forEach(image => {
-                    const thumbnail = document.createElement('div');
-                    thumbnail.className = 'thumbnail-item';
-                    
-                    const img = document.createElement('img');
-                    img.src = image.img.src;
-                    img.alt = image.name;
-                    
-                    const name = document.createElement('div');
-                    name.className = 'thumbnail-name';
-                    name.textContent = image.name;
-                    
-                    thumbnail.appendChild(img);
-                    thumbnail.appendChild(name);
-                    thumbnailContainer.appendChild(thumbnail);
-                });
-                
-                showNotification(`已按文件名${ascending ? '正序' : '倒序'}排序`);
+                // 如果循环结束都没有决定顺序，则按长度
+                return ascending 
+                    ? aParts.length - bParts.length 
+                    : bParts.length - aParts.length;
+            }
+            
+            // 应用当前排序方法
+            function applyCurrentSortMethod() {
+                if (currentSortMethod === 'natural') {
+                    // 自然排序（默认）
+                    sortedImages = [...images].sort((a, b) => {
+                        return naturalCompare(a.name, b.name, true);
+                    });
+                } else if (currentSortMethod === 'asc') {
+                    // 正序排序
+                    sortedImages = [...images].sort((a, b) => {
+                        return a.name.localeCompare(b.name);
+                    });
+                } else if (currentSortMethod === 'desc') {
+                    // 倒序排序
+                    sortedImages = [...images].sort((a, b) => {
+                        return b.name.localeCompare(a.name);
+                    });
+                }
             }
             
             // 更新图片计数
@@ -1117,8 +1156,26 @@
             // 设置事件监听器
             function setupEventListeners() {
                 // 排序按钮
-                sortAscBtn.addEventListener('click', () => sortImages(true));
-                sortDescBtn.addEventListener('click', () => sortImages(false));
+                sortAscBtn.addEventListener('click', () => {
+                    currentSortMethod = 'asc';
+                    sortedImages = [...images].sort((a, b) => a.name.localeCompare(b.name));
+                    updateThumbnails();
+                    showNotification('已按文件名正序排序');
+                });
+                
+                sortDescBtn.addEventListener('click', () => {
+                    currentSortMethod = 'desc';
+                    sortedImages = [...images].sort((a, b) => b.name.localeCompare(a.name));
+                    updateThumbnails();
+                    showNotification('已按文件名倒序排序');
+                });
+                
+                sortNaturalBtn.addEventListener('click', () => {
+                    currentSortMethod = 'natural';
+                    sortedImages = [...images].sort((a, b) => naturalCompare(a.name, b.name, true));
+                    updateThumbnails();
+                    showNotification('已按自然顺序排序（数字按数值大小）');
+                });
                 
                 // 清空按钮
                 clearBtn.addEventListener('click', () => {
