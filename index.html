@@ -1,99 +1,219 @@
-<html lang="zh-CN"><head>
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>我的个人启动页</title>
+    <title>我的收藏夹</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="styles.css">
-    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+        
+        :root {
+            --primary: #4a6cf7;
+            --primary-light: #eef2ff;
+            --secondary: #6c757d;
+            --light: #f8f9fa;
+            --dark: #343a40;
+            --border: #dee2e6;
+            --shadow: 0 4px 6px rgba(0,0,0,0.1);
+            --transition: all 0.3s ease;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%);
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            padding: 40px 0;
+            margin-bottom: 40px;
+            background: linear-gradient(120deg, var(--primary) 0%, #657ef8 100%);
+            color: white;
+            border-radius: 12px;
+        }
+        
+        header h1 {
+            font-size: 2.8rem;
+            margin-bottom: 15px;
+        }
+        
+        header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+        
+        .section {
+            margin-bottom: 50px;
+        }
+        
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 1.8rem;
+            margin-bottom: 30px;
+            color: var(--dark);
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--primary-light);
+        }
+        
+        .link-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 30px;
+        }
+        
+        .link-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            transition: var(--transition);
+            height: 100%;
+        }
+        
+        .link-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+        
+        .link-card a {
+            display: flex;
+            padding: 30px;
+            text-decoration: none;
+            color: inherit;
+            height: 100%;
+        }
+        
+        .link-icon {
+            font-size: 2.8rem;
+            margin-right: 22px;
+            color: var(--primary);
+            flex-shrink: 0;
+        }
+        
+        .link-content h3 {
+            font-size: 1.4rem;
+            margin-bottom: 12px;
+            color: var(--dark);
+        }
+        
+        .link-content p {
+            color: var(--secondary);
+            font-size: 1rem;
+            line-height: 1.6;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 40px 0 20px;
+            color: var(--secondary);
+            font-size: 0.95rem;
+        }
+        
+        @media (max-width: 768px) {
+            .link-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            header h1 {
+                font-size: 2.2rem;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>欢迎来到我的个人空间</h1>
-            <p class="subtitle">这里是我的个性化启动页面，包含了常用文档和工具的快速访问链接。</p>
+            <h1><i class="fas fa-bookmark"></i> 我的收藏夹</h1>
+            <p>精心整理的实用资源，提高工作效率</p>
         </header>
         
-        <div class="content-grid">
-            <section class="section">
-                <h2 class="section-title"><i class="fas fa-file-alt"></i> 文档区域</h2>
-                <div class="link-grid">
-        <div class="link-card">
-            <a href="https://axmeqa6by0l.feishu.cn/wiki/DOrUwE8yGikQMqkuF9Fc7hD4nCh" target="_blank">
-                <div class="link-icon">
-                    <i class="fab fa-wikipedia-w"></i>
+        <section class="section">
+            <h2 class="section-title">
+                <i class="fas fa-file-alt"></i> 文档
+            </h2>
+            <div class="link-grid">
+                
+                <div class="link-card">
+                    <a href="https://developer.mozilla.org/" target="_blank">
+                        <div class="link-icon">
+                            <i class="fab fa-md"></i>
+                        </div>
+                        <div class="link-content">
+                            <h3>MDN文档</h3>
+                            <p>Web开发技术文档</p>
+                        </div>
+                    </a>
                 </div>
-                <div class="link-content">
-                    <h3>飞书知识库</h3>
-                    <p>项目文档和协作知识库</p>
+                    
+                <div class="link-card">
+                    <a href="https://github.com/" target="_blank">
+                        <div class="link-icon">
+                            <i class="fab fa-github"></i>
+                        </div>
+                        <div class="link-content">
+                            <h3>GitHub</h3>
+                            <p>代码托管平台</p>
+                        </div>
+                    </a>
                 </div>
-            </a>
-        </div>
+                    
+            </div>
+        </section>
+                
+        <section class="section">
+            <h2 class="section-title">
+                <i class="fas fa-tools"></i> 工具
+            </h2>
+            <div class="link-grid">
+                
+                <div class="link-card">
+                    <a href="https://jsonformatter.org/" target="_blank">
+                        <div class="link-icon">
+                            <i class="fas fa-code"></i>
+                        </div>
+                        <div class="link-content">
+                            <h3>JSON格式化</h3>
+                            <p>在线JSON工具</p>
+                        </div>
+                    </a>
+                </div>
+                    
+                <div class="link-card">
+                    <a href="https://htmlcolorcodes.com/" target="_blank">
+                        <div class="link-icon">
+                            <i class="fas fa-palette"></i>
+                        </div>
+                        <div class="link-content">
+                            <h3>颜色选择器</h3>
+                            <p>在线颜色工具</p>
+                        </div>
+                    </a>
+                </div>
+                    
+            </div>
+        </section>
+                
+        <footer>
+            <p>© 2023 我的收藏夹 | 最后更新: 2025/9/13</p>
+        </footer>
     </div>
-            </section>
-            
-            <section class="section">
-                <h2 class="section-title"><i class="fas fa-tools"></i> 工具区域</h2>
-                <div class="link-grid">
-        <div class="link-card">
-            <a href="https://ezgif.com/gif-to-sprite?err=expired" target="_blank">
-                <div class="link-icon">
-                    <i class="fas fa-image"></i>
-                </div>
-                <div class="link-content">
-                    <h3>EZGIF工具</h3>
-                    <p>在线GIF编辑和转换工具</p>
-                </div>
-            </a>
-        </div>
-    
-        <div class="link-card">
-            <a href="简易图片拼接工具.HTML" target="_blank">
-                <div class="link-icon">
-                    <i class="fas fa-link"></i>
-                </div>
-                <div class="link-content">
-                    <h3>简易图片拼接工具</h3>
-                    <p>实现基本图像拼接功能</p>
-                </div>
-            </a>
-        </div>
-    
-        <div class="link-card">
-            <a href="启动页编辑器.html" target="_blank">
-                <div class="link-icon">
-                    <i class="fas fa-link"></i>
-                </div>
-                <div class="link-content">
-                    <h3>当前页面编辑器</h3>
-                    <p>AI真是偷懒神器</p>
-                </div>
-            </a>
-        </div>
-    </div>
-            </section>
-        </div>
-        
-        <div class="footer">
-            <p>© 2023 个人启动页面 | 自定义您的数字工作空间</p>
-        </div>
-    </div>
-    
-    <script>
-        // 添加卡片点击效果
-        document.querySelectorAll('.link-card').forEach(card => {
-            card.addEventListener('click', function(e) {
-                if (e.target.tagName === 'A') return;
-                const link = this.querySelector('a');
-                if (link) {
-                    window.open(link.href, '_blank');
-                }
-            });
-        });
-        
-        // 添加页面加载动画
-        document.addEventListener('DOMContentLoaded', () => {
-            document.body.style.opacity = 1;
-        });
-    </script>
-
-</body></html>
+</body>
+</html>
