@@ -6,7 +6,28 @@
     <title>收藏夹编辑器</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="编辑器.css">
-    </head>
+    <style>
+        /* 添加文本框样式 */
+        .html-source-input {
+            width: 100%;
+            min-height: 150px;
+            padding: 15px;
+            margin: 15px 0;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 14px;
+            resize: vertical;
+            box-sizing: border-box;
+        }
+        
+        .html-source-input:focus {
+            border-color: #4a6cf7;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(74, 108, 247, 0.2);
+        }
+    </style>
+</head>
 <body>
     <div class="container">
         <!-- 头部 -->
@@ -15,15 +36,18 @@
             <p>创建并管理您的个性化收藏夹网页，轻松添加、编辑和整理常用链接</p>
         </div>
         
-        <!-- 拖放区域 - 缩小版 -->
+        <!-- 修改后的导入区域 - 使用文本输入框 -->
         <div class="drop-zone" id="dropZone">
-            <i class="fas fa-cloud-upload-alt"></i>
-            <h3>拖放HTML文件到此处</h3>
-            <p>或点击选择文件开始编辑现有收藏夹</p>
-            <button class="btn-outline">
-                <i class="fas fa-file-upload"></i> 选择文件
+            <i class="fas fa-code"></i>
+            <h3>粘贴HTML源代码</h3>
+            <p>将您的收藏夹HTML源代码粘贴到下方输入框</p>
+            
+            <textarea id="htmlSourceInput" class="html-source-input" placeholder="在此处粘贴HTML代码..."></textarea>
+            
+            <button class="btn-outline" id="importHtmlBtn">
+                <i class="fas fa-file-import"></i> 导入HTML
             </button>
-            <input type="file" id="fileInput" accept=".html" style="display: none;">
+            <p class="note">提示：在浏览器中打开收藏夹页面，右键选择"查看页面源代码"，复制所有内容并粘贴到上方文本框。</p>
         </div>
         
         <!-- 主编辑区 -->
@@ -736,111 +760,250 @@
                 }
             } else {
                 // 添加新按钮
-            buttons.push({
-                id: 'button' + Date.now(),
-                section,
-                title,
-                icon,
-                content,
-                link
-            });
-        }
-        
-        markUnsavedChanges();
-        renderButtons();
-        updatePreview();
-    }
-    
-    // 编辑按钮
-    function editButton(buttonId) {
-        const button = buttons.find(b => b.id === buttonId);
-        if (button) showButtonForm(button);
-    }
-    
-    // 删除按钮
-    function deleteButton(buttonId) {
-        if (!confirm('确定要删除此按钮吗？')) {
-            return;
-        }
-        
-        buttons = buttons.filter(b => b.id !== buttonId);
-        markUnsavedChanges();
-        renderButtons();
-        updatePreview();
-    }
-    
-    // 提取HTML结构信息
-    function extractHtmlStructure(doc) {
-        // 提取head内容（除了title和viewport）
-        const head = doc.head;
-        let headContent = '';
-        for (let i = 0; i < head.children.length; i++) {
-            const child = head.children[i];
-            if (child.tagName !== 'TITLE' && 
-                !(child.tagName === 'META' && child.getAttribute('name') === 'viewport')) {
-                headContent += child.outerHTML + '\n    ';
+                buttons.push({
+                    id: 'button' + Date.now(),
+                    section,
+                    title,
+                    icon,
+                    content,
+                    link
+                });
             }
+            
+            markUnsavedChanges();
+            renderButtons();
+            updatePreview();
         }
         
-        // 提取header和footer内容
-        const header = doc.querySelector('header');
-        const footer = doc.querySelector('footer');
+        // 编辑按钮
+        function editButton(buttonId) {
+            const button = buttons.find(b => b.id === buttonId);
+            if (button) showButtonForm(button);
+        }
         
-        // 提取body的class
-        const bodyClasses = doc.body.getAttribute('class') || '';
+        // 删除按钮
+        function deleteButton(buttonId) {
+            if (!confirm('确定要删除此按钮吗？')) {
+                return;
+            }
+            
+            buttons = buttons.filter(b => b.id !== buttonId);
+            markUnsavedChanges();
+            renderButtons();
+            updatePreview();
+        }
         
-        // 提取容器元素的class
-        const container = doc.querySelector('.container');
-        const containerClasses = container ? container.getAttribute('class') || '' : '';
+        // 提取HTML结构信息
+        function extractHtmlStructure(doc) {
+            // 提取head内容（除了title和viewport）
+            const head = doc.head;
+            let headContent = '';
+            for (let i = 0; i < head.children.length; i++) {
+                const child = head.children[i];
+                if (child.tagName !== 'TITLE' && 
+                    !(child.tagName === 'META' && child.getAttribute('name') === 'viewport')) {
+                    headContent += child.outerHTML + '\n    ';
+                }
+            }
+            
+            // 提取header和footer内容
+            const header = doc.querySelector('header');
+            const footer = doc.querySelector('footer');
+            
+            // 提取body的class
+            const bodyClasses = doc.body.getAttribute('class') || '';
+            
+            // 提取容器元素的class
+            const container = doc.querySelector('.container');
+            const containerClasses = container ? container.getAttribute('class') || '' : '';
+            
+            // 保存提取的信息
+            importedHtmlStructure = {
+                head: headContent,
+                header: header ? header.outerHTML : '',
+                footer: footer ? footer.outerHTML : '',
+                styles: '',
+                bodyClasses: bodyClasses,
+                containerClasses: containerClasses
+            };
+        }
         
-        // 保存提取的信息
-        importedHtmlStructure = {
-            head: headContent,
-            header: header ? header.outerHTML : '',
-            footer: footer ? footer.outerHTML : '',
-            styles: '',
-            bodyClasses: bodyClasses,
-            containerClasses: containerClasses
-        };
-    }
-    
-    // 生成输出HTML - 基于导入的HTML结构
-    function generateOutput() {
-        // 使用导入的HTML结构（如果有），否则使用默认结构
-        let html = `<!DOCTYPE html>
+        // 解析收藏夹内容
+        function parseFavoritesContent(doc) {
+            // 清空现有数据
+            sections = [];
+            buttons = [];
+            
+            // 解析区域
+            const sectionElements = doc.querySelectorAll('.section');
+            sectionElements.forEach(sectionEl => {
+                const titleEl = sectionEl.querySelector('.section-title');
+                if (titleEl) {
+                    const iconEl = titleEl.querySelector('i');
+                    const sectionId = 'section' + Date.now() + Math.random().toString(36).substr(2, 5);
+                    
+                    sections.push({
+                        id: sectionId,
+                        title: titleEl.textContent.replace(iconEl ? iconEl.outerHTML : '', '').trim(),
+                        icon: iconEl ? iconEl.className : 'fas fa-folder',
+                        description: ''
+                    });
+                    
+                    // 解析该区域下的按钮
+                    const buttonElements = sectionEl.querySelectorAll('.link-card');
+                    buttonElements.forEach(buttonEl => {
+                        const linkEl = buttonEl.querySelector('a');
+                        if (linkEl) {
+                            const iconEl = linkEl.querySelector('.link-icon i');
+                            const contentEl = linkEl.querySelector('.link-content');
+                            
+                            buttons.push({
+                                id: 'button' + Date.now() + Math.random().toString(36).substr(2, 5),
+                                section: sectionId,
+                                title: contentEl ? contentEl.querySelector('h3')?.textContent?.trim() || '未命名' : '未命名',
+                                content: contentEl ? contentEl.querySelector('p')?.textContent?.trim() || '' : '',
+                                icon: iconEl ? iconEl.className : 'fas fa-link',
+                                link: linkEl.getAttribute('href') || '#'
+                            });
+                        }
+                    });
+                }
+            });
+            
+            // 更新UI
+            renderSections();
+            updateSectionFilter();
+            renderButtons();
+            updatePreview();
+            markUnsavedChanges();
+        }
+        
+        // 生成的HTML代码
+        function generateHtml() {
+            let html = `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>我的收藏夹</title>
-    ${importedHtmlStructure.head || '<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">'}
-</head>
-<body${importedHtmlStructure.bodyClasses ? ' class="' + importedHtmlStructure.bodyClasses + '"' : ''}>
-    ${importedHtmlStructure.header || `
-    <header>
-        <h1><i class="fas fa-bookmark"></i> 我的收藏夹</h1>
-        <p>精心整理的实用资源，提高工作效率</p>
-    </header>
-    `}
-    
-    <div${importedHtmlStructure.containerClasses ? ' class="' + importedHtmlStructure.containerClasses + '"' : ' class="container"'}>
-        `;
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    ${importedHtmlStructure.head}
+    <style>
+        /* 这里是样式代码 */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7ff;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
         
-        // 添加区域和按钮内容
-        sections.forEach(section => {
-            const sectionButtons = buttons.filter(b => b.section === section.id);
-            
-            html += `
-        <section class="section">
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .section {
+            margin-bottom: 40px;
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+        }
+        
+        .section-title {
+            font-size: 1.8rem;
+            color: #4a6cf7;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .link-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .link-card {
+            background: #f8f9ff;
+            border-radius: 12px;
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .link-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(74, 108, 247, 0.15);
+        }
+        
+        .link-card a {
+            display: block;
+            padding: 20px;
+            text-decoration: none;
+            color: inherit;
+        }
+        
+        .link-icon {
+            font-size: 2.5rem;
+            color: #4a6cf7;
+            margin-bottom: 15px;
+        }
+        
+        .link-content h3 {
+            margin: 0;
+            font-size: 1.3rem;
+            color: #1a1a1a;
+        }
+        
+        .link-content p {
+            margin: 8px 0 0;
+            color: #666;
+            font-size: 0.95rem;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 50px;
+            padding: 20px;
+            color: #666;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body class="${importedHtmlStructure.bodyClasses}">
+    ${importedHtmlStructure.header || ''}
+    <div class="container ${importedHtmlStructure.containerClasses}">
+        <!-- 动态生成收藏夹内容 -->
+`;
+
+            sections.forEach(section => {
+                const sectionButtons = buttons.filter(b => b.section === section.id);
+                
+                html += `        <section class="section">
             <h2 class="section-title">
                 <i class="${section.icon}"></i> ${section.title}
             </h2>
             <div class="link-grid">
-                `;
-            
-            sectionButtons.forEach(button => {
-                html += `
-                <div class="link-card">
+`;
+                
+                if (sectionButtons.length === 0) {
+                    html += `                <div class="link-card" style="grid-column: 1 / -1; text-align: center; padding: 30px;">
+                    <i class="fas fa-link" style="font-size: 2.5rem; color: #ddd; margin-bottom: 15px;"></i>
+                    <h3>此区域暂无链接</h3>
+                    <p>添加链接后，将在此处显示</p>
+                </div>
+`;
+                } else {
+                    sectionButtons.forEach(button => {
+                        html += `                <div class="link-card">
                     <a href="${button.link}" target="_blank">
                         <div class="link-icon">
                             <i class="${button.icon}"></i>
@@ -851,306 +1014,174 @@
                         </div>
                     </a>
                 </div>
-                `;
+`;
+                    });
+                }
+                
+                html += `            </div>
+        </section>
+`;
             });
             
-            html += `
-            </div>
-        </section>
-            `;
-        });
-        
-        // 添加页脚
-        html += `
-        ${importedHtmlStructure.footer || `
-        <footer>
-            <p>© 2023 我的收藏夹 | 最后更新: ${new Date().toLocaleDateString()}</p>
-        </footer>
-        `}
-    </div>
+            html += `    </div>
+    ${importedHtmlStructure.footer || ''}
 </body>
 </html>`;
-        
-        document.getElementById('htmlOutput').value = html;
-    }
-    
-    // 复制到剪贴板
-    function copyToClipboard() {
-        const output = document.getElementById('htmlOutput');
-        output.select();
-        document.execCommand('copy');
-        
-        // 显示成功消息
-        const originalText = document.getElementById('copyBtn').innerHTML;
-        document.getElementById('copyBtn').innerHTML = '<i class="fas fa-check"></i> 已复制';
-        setTimeout(() => {
-            document.getElementById('copyBtn').innerHTML = originalText;
-        }, 2000);
-    }
-    
-    // 重置编辑器
-    function resetEditor() {
-        if (!confirm('确定要重置编辑器吗？所有未保存的更改将会丢失。')) {
-            return;
+            
+            return html;
         }
         
-        sections = [
-            {
-                id: 'docs',
-                title: '文档',
-                icon: 'fas fa-file-alt',
-                description: '常用文档资源'
-            },
-            {
-                id: 'tools',
-                title: '工具',
-                icon: 'fas fa-tools',
-                description: '实用在线工具'
-            }
-        ];
-        
-        buttons = [
-            {
-                id: 'doc1',
-                section: 'docs',
-                title: 'MDN文档',
-                content: 'Web开发技术文档',
-                icon: 'fab fa-md',
-                link: 'https://developer.mozilla.org/'
-            },
-            {
-                id: 'doc2',
-                section: 'docs',
-                title: 'GitHub',
-                content: '代码托管平台',
-                icon: 'fab fa-github',
-                link: 'https://github.com/'
-            },
-            {
-                id: 'tool1',
-                section: 'tools',
-                title: 'JSON格式化',
-                content: '在线JSON工具',
-                icon: 'fas fa-code',
-                link: 'https://jsonformatter.org/'
-            },
-            {
-                id: 'tool2',
-                section: 'tools',
-                title: '颜色选择器',
-                content: '在线颜色工具',
-                icon: 'fas fa-palette',
-                link: 'https://htmlcolorcodes.com/'
-            }
-        ];
-        
-        // 重置导入的HTML结构
-        importedHtmlStructure = {
-            head: '',
-            header: '',
-            footer: '',
-            styles: '',
-            bodyClasses: '',
-            containerClasses: ''
-        };
-        
-        hasUnsavedChanges = false;
-        currentFilter = 'all';
-        isSectionSorting = false;
-        isButtonSorting = false;
-        renderSections();
-        updateSectionFilter();
-        renderButtons();
-        updatePreview();
-        document.getElementById('htmlOutput').value = '';
-        document.getElementById('sectionFilter').value = 'all';
-        
-        // 重置排序按钮状态
-        document.getElementById('toggleSectionSortBtn').innerHTML = '<i class="fas fa-sort"></i> 排序';
-        document.getElementById('toggleSectionSortBtn').className = 'btn-outline';
-        document.getElementById('toggleButtonSortBtn').innerHTML = '<i class="fas fa-sort"></i> 排序';
-        document.getElementById('toggleButtonSortBtn').className = 'btn-outline';
-        
-        // 重置拖放区域
-        document.getElementById('dropZone').innerHTML = `
-            <i class="fas fa-cloud-upload-alt"></i>
-            <h3>拖放HTML文件到此处</h3>
-            <p>或点击选择文件开始编辑现有收藏夹</p>
-            <button class="btn-outline">
-                <i class="fas fa-file-upload"></i> 选择文件
-            </button>
-        `;
-        
-        // 重新绑定事件
-        document.getElementById('dropZone').addEventListener('click', () => document.getElementById('fileInput').click());
-    }
-    
-    // 设置拖拽上传
-    function setupDragAndDrop() {
-        const dropZone = document.getElementById('dropZone');
-        
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            dropZone.addEventListener(eventName, preventDefaults, false);
-        });
-        
-        ['dragenter', 'dragover'].forEach(eventName => {
-            dropZone.addEventListener(eventName, highlight, false);
-        });
-        
-        ['dragleave', 'drop'].forEach(eventName => {
-            dropZone.addEventListener(eventName, unhighlight, false);
-        });
-        
-        dropZone.addEventListener('drop', handleDrop, false);
-    }
-    
-    function preventDefaults(e) {
-        e.preventDefault();
-        e.stopPropagation();
-    }
-    
-    function highlight() {
-        document.getElementById('dropZone').classList.add('dragover');
-    }
-    
-    function unhighlight() {
-        document.getElementById('dropZone').classList.remove('dragover');
-    }
-    
-    function handleDrop(e) {
-        const dt = e.dataTransfer;
-        const files = dt.files;
-        
-        if (files.length) {
-            handleFileSelect({ target: { files } });
-        }
-    }
-    
-    function handleFileSelect(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-        
-        if (file.type === 'text/html' || file.name.endsWith('.html')) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
+        // 初始化事件监听器
+        function initEventListeners() {
+            // 添加区域按钮
+            document.getElementById('addSectionBtn').addEventListener('click', function() {
+                showSectionForm();
+            });
+            
+            // 添加按钮按钮
+            document.getElementById('addButtonBtn').addEventListener('click', function() {
+                showButtonForm();
+            });
+            
+            // 区域筛选器
+            document.getElementById('sectionFilter').addEventListener('change', function() {
+                currentFilter = this.value;
+                renderButtons();
+            });
+            
+            // 切换区域排序按钮
+            document.getElementById('toggleSectionSortBtn').addEventListener('click', toggleSectionSort);
+            
+            // 切换按钮排序按钮
+            document.getElementById('toggleButtonSortBtn').addEventListener('click', toggleButtonSort);
+            
+            // 生成代码按钮
+            document.getElementById('generateBtn').addEventListener('click', function() {
+                document.getElementById('htmlOutput').value = generateHtml();
+            });
+            
+            // 复制按钮
+            document.getElementById('copyBtn').addEventListener('click', function() {
+                const output = document.getElementById('htmlOutput');
+                output.select();
+                document.execCommand('copy');
+                alert('代码已复制到剪贴板！');
+            });
+            
+            // 重置按钮
+            document.getElementById('resetBtn').addEventListener('click', function() {
+                if (confirm('确定要重置编辑器吗？所有未保存的更改都将丢失。')) {
+                    sections = [
+                        {
+                            id: 'docs',
+                            title: '文档',
+                            icon: 'fas fa-file-alt',
+                            description: '常用文档资源'
+                        },
+                        {
+                            id: 'tools',
+                            title: '工具',
+                            icon: 'fas fa-tools',
+                            description: '实用在线工具'
+                        }
+                    ];
+                    
+                    buttons = [
+                        {
+                            id: 'doc1',
+                            section: 'docs',
+                            title: 'MDN文档',
+                            content: 'Web开发技术文档',
+                            icon: 'fab fa-md',
+                            link: 'https://developer.mozilla.org/'
+                        },
+                        {
+                            id: 'doc2',
+                            section: 'docs',
+                            title: 'GitHub',
+                            content: '代码托管平台',
+                            icon: 'fab fa-github',
+                            link: 'https://github.com/'
+                        },
+                        {
+                            id: 'tool1',
+                            section: 'tools',
+                            title: 'JSON格式化',
+                            content: '在线JSON工具',
+                            icon: 'fas fa-code',
+                            link: 'https://jsonformatter.org/'
+                        },
+                        {
+                            id: 'tool2',
+                            section: 'tools',
+                            title: '颜色选择器',
+                            content: '在线颜色工具',
+                            icon: 'fas fa-palette',
+                            link: 'https://htmlcolorcodes.com/'
+                        }
+                    ];
+                    
+                    importedHtmlStructure = {
+                        head: '',
+                        header: '',
+                        footer: '',
+                        styles: '',
+                        bodyClasses: '',
+                        containerClasses: ''
+                    };
+                    
+                    currentFilter = 'all';
+                    document.getElementById('sectionFilter').value = 'all';
+                    
+                    renderSections();
+                    updateSectionFilter();
+                    renderButtons();
+                    updatePreview();
+                    document.getElementById('htmlOutput').value = '';
+                    
+                    alert('编辑器已重置！');
+                }
+            });
+            
+            // 导入HTML按钮
+            document.getElementById('importHtmlBtn').addEventListener('click', function() {
+                const htmlSource = document.getElementById('htmlSourceInput').value.trim();
+                
+                if (!htmlSource) {
+                    alert('请粘贴HTML源代码到输入框');
+                    return;
+                }
+                
                 try {
-                    // 解析HTML文件内容
-                    const content = e.target.result;
+                    // 使用DOMParser解析HTML字符串
                     const parser = new DOMParser();
-                    const doc = parser.parseFromString(content, 'text/html');
+                    const doc = parser.parseFromString(htmlSource, 'text/html');
                     
                     // 提取HTML结构信息
                     extractHtmlStructure(doc);
                     
-                    // 提取区域和按钮数据
-                    const parsedSections = [];
-                    const parsedButtons = [];
+                    // 尝试解析收藏夹内容（区域和按钮）
+                    parseFavoritesContent(doc);
                     
-                    // 查找所有区域
-                    const sectionElements = doc.querySelectorAll('.section');
-                    sectionElements.forEach(sectionEl => {
-                        const titleEl = sectionEl.querySelector('.section-title');
-                        if (titleEl) {
-                            const iconEl = titleEl.querySelector('i');
-                            const section = {
-                                id: 'section' + Date.now() + Math.random().toString(36).substr(2, 5),
-                                title: titleEl.textContent.trim(),
-                                icon: iconEl ? iconEl.className : 'fas fa-folder',
-                                description: ''
-                            };
-                            parsedSections.push(section);
-                            
-                            // 查找该区域下的所有按钮
-                            const linkCards = sectionEl.querySelectorAll('.link-card');
-                            linkCards.forEach(card => {
-                                const linkEl = card.querySelector('a');
-                                const iconEl = card.querySelector('.link-icon i') || card.querySelector('.link-icon');
-                                const titleEl = card.querySelector('.link-content h3');
-                                const contentEl = card.querySelector('.link-content p');
-                                
-                                if (linkEl && titleEl) {
-                                    parsedButtons.push({
-                                        id: 'button' + Date.now() + Math.random().toString(36).substr(2, 5),
-                                        section: section.id,
-                                        title: titleEl.textContent.trim(),
-                                        content: contentEl ? contentEl.textContent.trim() : '',
-                                        icon: iconEl ? (iconEl.className || 'fas fa-link') : 'fas fa-link',
-                                        link: linkEl.getAttribute('href')
-                                    });
-                                }
-                            });
-                        }
-                    });
-                    
-                    // 更新数据
-                    if (parsedSections.length > 0) {
-                        sections = parsedSections;
-                        buttons = parsedButtons;
-                        
-                        // 更新UI
-                        renderSections();
-                        updateSectionFilter();
-                        renderButtons();
-                        updatePreview();
-                        
-                        document.getElementById('dropZone').innerHTML = `
-                            <i class="fas fa-check-circle" style="color: #28a745;"></i>
-                            <h3>已加载: ${file.name}</h3>
-                            <p>开始编辑您的收藏夹</p>
-                        `;
-                        
-                        hasUnsavedChanges = false;
-                    } else {
-                        alert('无法从文件中提取有效的收藏夹数据');
-                    }
+                    alert('HTML导入成功！');
                 } catch (error) {
-                    console.error('解析文件时出错:', error);
-                    alert('解析文件时出错，请确保文件格式正确');
+                    console.error('HTML解析错误:', error);
+                    alert('导入失败：HTML格式不正确或包含错误');
                 }
-            };
-            reader.readAsText(file);
-        } else {
-            alert('请上传HTML文件');
+            });
         }
-    }
-    
-    // DOM加载完成后初始化
-    document.addEventListener('DOMContentLoaded', function() {
-        // 初始化UI
-        renderSections();
-        updateSectionFilter();
-        renderButtons();
-        updatePreview();
         
-        // 事件监听
-        document.getElementById('fileInput').addEventListener('change', handleFileSelect);
-        document.getElementById('dropZone').addEventListener('click', () => document.getElementById('fileInput').click());
-        document.getElementById('addSectionBtn').addEventListener('click', () => showSectionForm());
-        document.getElementById('addButtonBtn').addEventListener('click', () => showButtonForm());
-        document.getElementById('generateBtn').addEventListener('click', generateOutput);
-        document.getElementById('copyBtn').addEventListener('click', copyToClipboard);
-        document.getElementById('resetBtn').addEventListener('click', resetEditor);
-        document.getElementById('sectionFilter').addEventListener('change', function() {
-            currentFilter = this.value;
+        // 初始化应用
+        function initApp() {
+            renderSections();
+            updateSectionFilter();
             renderButtons();
-        });
+            updatePreview();
+            initEventListeners();
+        }
         
-        // 排序按钮事件
-        document.getElementById('toggleSectionSortBtn').addEventListener('click', toggleSectionSort);
-        document.getElementById('toggleButtonSortBtn').addEventListener('click', toggleButtonSort);
-        
-        // 设置拖拽上传
-        setupDragAndDrop();
-        
-        // 监听页面关闭/刷新前的保存提示
-        window.addEventListener('beforeunload', function(e) {
-            if (hasUnsavedChanges) {
-                const message = '您有未保存的更改，确定要离开吗？';
-                e.returnValue = message;
-                return message;
-            }
-        });
-    });
-</script>
+        // 启动应用
+        document.addEventListener('DOMContentLoaded', initApp);
+    </script>
 </body>
 </html>
