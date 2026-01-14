@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>图片拼接工具1.3 - 增强版</title>
+    <title>图片拼接工具1.4 - 增强版</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
@@ -229,9 +229,9 @@
             color: white;
             border: 2px solid white;
             border-radius: 4px;
-            width: 18px;
-            height: 18px;
-            font-size: 0.7rem;
+            width: 20px;
+            height: 20px;
+            font-size: 0.8rem;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -700,7 +700,7 @@
         
         .crop-overlay {
             position: absolute;
-            border: 2px dashed #ff0000;
+            border: 2px dashed #4A90E2;
             background: transparent;
         }
         
@@ -738,8 +738,8 @@
         /* 裁剪框样式 */
         .crop-box {
             position: absolute;
-            border: 2px solid #ff0000;
-            background: rgba(255, 0, 0, 0.2);
+            border: 2px solid #4A90E2;
+            background: rgba(74, 144, 226, 0.2);
             cursor: move;
         }
         
@@ -747,7 +747,7 @@
             position: absolute;
             width: 8px;
             height: 8px;
-            background: #ff0000;
+            background: #4A90E2;
             border: 1px solid white;
             border-radius: 50%;
         }
@@ -771,7 +771,7 @@
 <body>
     <div class="container">
         <header>
-            <h1><i class="fas fa-image"></i> 图片拼接工具<span class="version-badge">v1.3</span></h1>
+            <h1><i class="fas fa-image"></i> 图片拼接工具<span class="version-badge">v1.4</span></h1>
             <p class="subtitle">在本地浏览器中实现基本图像拼接功能：支持多图批量处理、多种拼接模式、自定义尺寸和背景处理</p>
         </header>
         
@@ -980,14 +980,14 @@
         </div>
         
         <footer>
-            <p>图片拼接工具 v1.3 | 基于HTML5 Canvas技术 | 本地运行无需服务器 | © 2025</p>
+            <p>图片拼接工具 v1.4 | 基于HTML5 Canvas技术 | 本地运行无需服务器 | © 2025</p>
         </footer>
     </div>
 
     <!-- 裁剪编辑器模态框 -->
     <div id="cropModal" class="modal">
         <div class="modal-content">
-            <span class="close" onclick="closeCropModal()">&times;</span>
+            <span class="close" id="cropCloseBtn">&times;</span>
             <div class="crop-container">
                 <h3>裁剪图片</h3>
                 <div class="crop-image-container">
@@ -1008,7 +1008,8 @@
                     <div id="overlayLeft" class="overlay-outside" style="display: none;"></div>
                 </div>
                 <div class="crop-controls">
-                    <button class="crop-action-btn confirm" onclick="confirmCrop()">确认裁剪</button>
+                    <button class="crop-action-btn cancel" id="cancelCropBtn">取消裁剪</button>
+                    <button class="crop-action-btn confirm" id="confirmCropBtn">确认裁剪</button>
                 </div>
                 <div class="crop-info">
                     <p>拖拽裁剪框或拖动边角调整裁剪区域，完成后点击"确认裁剪"</p>
@@ -1061,6 +1062,9 @@
             const overlayRight = document.getElementById('overlayRight');
             const overlayBottom = document.getElementById('overlayBottom');
             const overlayLeft = document.getElementById('overlayLeft');
+            const cropCloseBtn = document.getElementById('cropCloseBtn');
+            const cancelCropBtn = document.getElementById('cancelCropBtn');
+            const confirmCropBtn = document.getElementById('confirmCropBtn');
             
             // 全局变量
             let images = [];
@@ -2032,6 +2036,11 @@
             
             // 设置事件监听器
             function setupEventListeners() {
+                // 裁剪编辑器事件监听器
+                cropCloseBtn.addEventListener('click', closeCropModal);
+                cancelCropBtn.addEventListener('click', closeCropModal);
+                confirmCropBtn.addEventListener('click', confirmCrop);
+
                 // 排序按钮
                 sortAscBtn.addEventListener('click', () => {
                     currentSortMethod = 'asc';
