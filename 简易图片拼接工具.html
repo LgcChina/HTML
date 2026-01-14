@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>图片拼接工具2.0 - 增强版</title>
+    <title>图片拼接工具2.0 - 千问制作</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
@@ -773,7 +773,7 @@
 <body>
     <div class="container">
         <header>
-            <h1><i class="fas fa-image"></i> 图片拼接工具<span class="version-badge">v1.9</span></h1>
+            <h1><i class="fas fa-image"></i> 图片拼接工具<span class="version-badge">v2.0-千问制作</span></h1>
             <p class="subtitle">在本地浏览器中实现基本图像拼接功能：支持多图批量处理、多种拼接模式、自定义尺寸和背景处理</p>
         </header>
         
@@ -982,7 +982,7 @@
         </div>
         
         <footer>
-            <p>图片拼接工具 v1.9 | 基于HTML5 Canvas技术 | 本地运行无需服务器 | © 2025</p>
+            <p>图片拼接工具 v2.0-千问制作 | 基于HTML5 Canvas技术 | 本地运行无需服务器 | © 2025</p>
         </footer>
     </div>
 
@@ -1148,6 +1148,9 @@
                 
                 draggedItem = null;
                 dragOverItem = null;
+                
+                // 重新排序图片数组
+                updateSortedImagesFromDOM();
             }
             
             function handleDragOver(e) {
@@ -1187,8 +1190,8 @@
                         thumbnailContainer.insertBefore(draggedItem, dragOverItem);
                     }
                     
-                    // 核心修复：重新渲染缩略图，更新编辑按钮绑定的索引
-                    updateThumbnails();
+                    // 更新图片顺序
+                    updateSortedImagesFromDOM();
                     showNotification('图片顺序已更新');
                 }
                 
@@ -1202,11 +1205,19 @@
             function updateSortedImagesFromDOM() {
                 const allItems = thumbnailContainer.querySelectorAll('.thumbnail-item');
                 const newSortedImages = [];
+                
                 allItems.forEach(item => {
-                    const itemTempId = item.dataset.index;
-                    const image = images.find(img => img.tempId.toString() === itemTempId);
-                    if (image) newSortedImages.push(image);
+                    // 通过data属性获取对应的图片索引
+                    const itemIndex = parseInt(item.dataset.index);
+                    if (itemIndex >= 0 && itemIndex < images.length) {
+                        // 从原始图片数组中获取对应的图片
+                        const image = images.find(img => img.tempId === itemIndex);
+                        if (image) {
+                            newSortedImages.push(image);
+                        }
+                    }
                 });
+                
                 sortedImages = newSortedImages;
             }
             
@@ -1271,7 +1282,7 @@
                                 height: img.height,
                                 processed: false,
                                 originalSrc: e.target.result, // 保存原始图片数据
-                                tempId: Date.now() + Math.floor(Math.random() * 10000)
+                                tempId: Date.now() + Math.random() // 临时ID用于拖拽识别
                             };
                             
                             images.push(imageData);
@@ -1317,7 +1328,7 @@
                     const thumbnail = document.createElement('div');
                     thumbnail.className = 'thumbnail-item';
                     thumbnail.draggable = true;
-                    thumbnail.dataset.index = image.tempId;
+                    thumbnail.dataset.index = image.tempId; // 使用tempId作为唯一标识
                     
                     const img = document.createElement('img');
                     img.src = image.img.src;
@@ -1334,7 +1345,11 @@
                     editBtn.title = '编辑裁剪这张图片';
                     editBtn.onclick = (e) => {
                         e.stopPropagation(); // 防止拖拽事件
-                        openCropEditorByTempId(image.tempId);
+                        // 修复：通过查找当前排序数组中的实际索引来确定编辑哪张图片
+                        const actualIndex = sortedImages.findIndex(img => img.tempId === image.tempId);
+                        if (actualIndex !== -1) {
+                            openCropEditor(actualIndex);
+                        }
                     };
                     
                     // 创建删除按钮（红色）
@@ -1489,18 +1504,9 @@
                 canvas.style.height = (canvasHeight * initialScale * zoomLevel) + 'px';
             }
             
-            // 根据图片唯一tempId打开裁剪编辑器【新增方法，永不错位】
-            function openCropEditorByTempId(tempId) {
-                // 通过唯一ID精准找到图片在排序数组中的下标
-                const targetIndex = sortedImages.findIndex(img => img.tempId === tempId);
-                if(targetIndex === -1) return;
-                // 调用原有裁剪逻辑
-                openCropEditor(targetIndex);
-            }
-
-            // 裁剪编辑功能 - 增加索引校验，确保准确
+            // 裁剪编辑功能
             function openCropEditor(index) {
-                if(index <0 || index >= sortedImages.length) return;
+                // 现在index是排序后的索引，直接使用
                 currentEditIndex = index;
                 
                 const originalImg = new Image();
@@ -1548,6 +1554,7 @@
                     // 显示模态框
                     cropModal.style.display = 'block';
                 };
+                // 使用当前排序图片的原始src
                 originalImg.src = sortedImages[currentEditIndex].originalSrc;
             }
 
@@ -1823,25 +1830,31 @@
                 overlayLeft.style.display = 'none';
             }
 
-            // VRC预设功能 优化修复：自适应16:9比例，解决小图报错
+            // VRC预设功能
             function applyVRCPreset() {
-                // VRC预设优化：改为 16:9 比例自适应，兼容所有图片
-                const ratio = 16 / 9;
-                let presetWidth = Math.min(cropData.originalWidth, 1920);
-                let presetHeight = Math.min(cropData.originalHeight, presetWidth / ratio);
-                const presetX = (cropData.originalWidth - presetWidth) / 2;
-                const presetY = (cropData.originalHeight - presetHeight) / 2;
-
+                // VRC预设：X: 64, Y: 69, W: 1920, H: 1080
+                const presetX = 64;
+                const presetY = 69;
+                const presetWidth = 1920;
+                const presetHeight = 1080;
+                
+                // 检查图片是否足够大以应用预设
+                if (cropData.originalWidth < presetX + presetWidth || cropData.originalHeight < presetY + presetHeight) {
+                    showNotification('图片尺寸不足以应用VRC预设！', true);
+                    return;
+                }
+                
                 // 更新裁剪数据
                 cropData.startX = presetX;
                 cropData.startY = presetY;
                 cropData.width = presetWidth;
                 cropData.height = presetHeight;
-
+                
                 // 更新UI
                 updateCropBox();
                 updateOverlay();
-                showNotification('已应用VRC 16:9 最优预设');
+                
+                showNotification('已应用VRC预设');
             }
 
             // 点击模态框外部关闭
