@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>图片拼接工具1.5 - 增强版</title>
+    <title>图片拼接工具1.6 - 增强版</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
@@ -773,7 +773,7 @@
 <body>
     <div class="container">
         <header>
-            <h1><i class="fas fa-image"></i> 图片拼接工具<span class="version-badge">v1.5</span></h1>
+            <h1><i class="fas fa-image"></i> 图片拼接工具<span class="version-badge">v1.6</span></h1>
             <p class="subtitle">在本地浏览器中实现基本图像拼接功能：支持多图批量处理、多种拼接模式、自定义尺寸和背景处理</p>
         </header>
         
@@ -982,7 +982,7 @@
         </div>
         
         <footer>
-            <p>图片拼接工具 v1.5 | 基于HTML5 Canvas技术 | 本地运行无需服务器 | © 2025</p>
+            <p>图片拼接工具 v1.6 | 基于HTML5 Canvas技术 | 本地运行无需服务器 | © 2025</p>
         </footer>
     </div>
 
@@ -1498,7 +1498,15 @@
             
             // 裁剪编辑功能
             function openCropEditor(index) {
-                currentEditIndex = index;
+                // 修复：根据当前排序确定实际图片索引
+                const actualIndex = sortedImages.findIndex(img => img === images[index]);
+                if (actualIndex !== -1) {
+                    currentEditIndex = actualIndex;
+                } else {
+                    // 如果没找到，使用原来的索引（在排序后可能已经改变）
+                    currentEditIndex = index;
+                }
+                
                 const originalImg = new Image();
                 originalImg.onload = function() {
                     // 设置画布尺寸
@@ -1544,7 +1552,8 @@
                     // 显示模态框
                     cropModal.style.display = 'block';
                 };
-                originalImg.src = originalImages[index].src;
+                // 使用当前排序图片的原始src
+                originalImg.src = sortedImages[currentEditIndex].originalSrc;
             }
 
             // 更新裁剪框位置和大小
@@ -1772,12 +1781,12 @@
                     const croppedData = cropResultCanvas.toDataURL();
                     const croppedImg = new Image();
                     croppedImg.onload = function() {
-                        // 更新图片对象
+                        // 更新排序数组中的图片对象
                         sortedImages[currentEditIndex].img = croppedImg;
                         sortedImages[currentEditIndex].width = cropData.width;
                         sortedImages[currentEditIndex].height = cropData.height;
                         
-                        // 也要更新原始数组中的图片
+                        // 同时更新原始数组中的图片（如果存在）
                         const originalIndex = images.findIndex(img => img.name === sortedImages[currentEditIndex].name);
                         if (originalIndex !== -1) {
                             images[originalIndex].img = croppedImg;
@@ -1795,7 +1804,7 @@
                     };
                     croppedImg.src = croppedData;
                 };
-                originalImg.src = originalImages[currentEditIndex].src;
+                originalImg.src = sortedImages[currentEditIndex].originalSrc;
             }
 
             function closeCropModal() {
