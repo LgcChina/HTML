@@ -1149,7 +1149,7 @@
                 draggedItem = null;
                 dragOverItem = null;
                 
-                // 重新排序图片数组 - 核心修复：保证索引严格对应
+                // 重新排序图片数组
                 updateSortedImagesFromDOM();
             }
             
@@ -1201,15 +1201,23 @@
                 }
             }
             
-            // 【核心修复】从DOM更新排序图片数组 - 重构此方法，保证DOM顺序与数组索引完全一致
+            // 从DOM更新排序图片数组
             function updateSortedImagesFromDOM() {
                 const allItems = thumbnailContainer.querySelectorAll('.thumbnail-item');
                 const newSortedImages = [];
+                
                 allItems.forEach(item => {
-                    const itemTempId = item.dataset.index;
-                    const image = images.find(img => img.tempId.toString() === itemTempId);
-                    if (image) newSortedImages.push(image);
+                    // 通过data属性获取对应的图片索引
+                    const itemIndex = parseInt(item.dataset.index);
+                    if (itemIndex >= 0 && itemIndex < images.length) {
+                        // 从原始图片数组中获取对应的图片
+                        const image = images.find(img => img.tempId === itemIndex);
+                        if (image) {
+                            newSortedImages.push(image);
+                        }
+                    }
                 });
+                
                 sortedImages = newSortedImages;
             }
             
@@ -1274,7 +1282,7 @@
                                 height: img.height,
                                 processed: false,
                                 originalSrc: e.target.result, // 保存原始图片数据
-                                tempId: Date.now() + Math.floor(Math.random() * 10000) // 修复：生成纯整数ID，避免解析精度丢失
+                                tempId: Date.now() + Math.random() // 临时ID用于拖拽识别
                             };
                             
                             images.push(imageData);
@@ -1492,11 +1500,17 @@
                 canvas.style.height = (canvasHeight * initialScale * zoomLevel) + 'px';
             }
             
-            // 【优化修复】裁剪编辑功能 - 增加索引校验，确保准确
+            // 裁剪编辑功能
             function openCropEditor(index) {
-                if(index <0 || index >= sortedImages.length) return;
-                // 现在index是排序后的索引，直接使用
-                currentEditIndex = index;
+                // 修复：现在index是排序后的索引，我们需要找到对应的图片
+                const sortedImage = sortedImages[index];
+                if (!sortedImage) return;
+                
+                // 找到原始数组中的索引
+                const originalIndex = images.findIndex(img => img.tempId === sortedImage.tempId);
+                if (originalIndex === -1) return;
+                
+                currentEditIndex = originalIndex;
                 
                 const originalImg = new Image();
                 originalImg.onload = function() {
@@ -1544,7 +1558,7 @@
                     cropModal.style.display = 'block';
                 };
                 // 使用当前排序图片的原始src
-                originalImg.src = sortedImages[currentEditIndex].originalSrc;
+                originalImg.src = sortedImage.originalSrc;
             }
 
             // 更新裁剪框位置和大小
@@ -1772,17 +1786,17 @@
                     const croppedData = cropResultCanvas.toDataURL();
                     const croppedImg = new Image();
                     croppedImg.onload = function() {
-                        // 更新排序数组中的图片对象
-                        sortedImages[currentEditIndex].img = croppedImg;
-                        sortedImages[currentEditIndex].width = cropData.width;
-                        sortedImages[currentEditIndex].height = cropData.height;
+                        // 更新原始数组中的图片对象
+                        images[currentEditIndex].img = croppedImg;
+                        images[currentEditIndex].width = cropData.width;
+                        images[currentEditIndex].height = cropData.height;
                         
-                        // 同时更新原始数组中的图片（如果存在）
-                        const originalIndex = images.findIndex(img => img.tempId === sortedImages[currentEditIndex].tempId);
-                        if (originalIndex !== -1) {
-                            images[originalIndex].img = croppedImg;
-                            images[originalIndex].width = cropData.width;
-                            images[originalIndex].height = cropData.height;
+                        // 同时更新排序数组中的图片（如果存在）
+                        const sortedIndex = sortedImages.findIndex(img => img.tempId === images[currentEditIndex].tempId);
+                        if (sortedIndex !== -1) {
+                            sortedImages[sortedIndex].img = croppedImg;
+                            sortedImages[sortedIndex].width = cropData.width;
+                            sortedImages[sortedIndex].height = cropData.height;
                         }
                         
                         // 更新显示
@@ -1795,7 +1809,7 @@
                     };
                     croppedImg.src = croppedData;
                 };
-                originalImg.src = sortedImages[currentEditIndex].originalSrc;
+                originalImg.src = images[currentEditIndex].originalSrc;
             }
 
             function closeCropModal() {
