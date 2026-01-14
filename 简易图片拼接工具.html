@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>图片拼接工具2.0 - 增强版</title>
+    <title>图片拼接工具2.0-豆包</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
@@ -174,6 +174,7 @@
             cursor: move;
             transition: transform 0.2s ease, box-shadow 0.2s ease;
             user-select: none;
+            touch-action: none;
         }
         
         .thumbnail-item img {
@@ -211,7 +212,7 @@
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            z-index: 10;
+            z-index: 9999;
             font-weight: bold;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
             transition: all 0.2s ease;
@@ -237,7 +238,7 @@
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            z-index: 10;
+            z-index: 9999;
             font-weight: bold;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
             transition: all 0.2s ease;
@@ -775,7 +776,7 @@
 <body>
     <div class="container">
         <header>
-            <h1><i class="fas fa-image"></i> 图片拼接工具<span class="version-badge">v1.9</span></h1>
+            <h1><i class="fas fa-image"></i> 图片拼接工具<span class="version-badge">v2.0-豆包</span></h1>
             <p class="subtitle">在本地浏览器中实现基本图像拼接功能：支持多图批量处理、多种拼接模式、自定义尺寸和背景处理</p>
         </header>
         
@@ -973,7 +974,7 @@
                 <div class="feature-card">
                     <i class="fas fa-arrows-alt"></i>
                     <h3>拖拽排序</h3>
-                    <p>支持手动拖拽重新排列图片顺序</p>
+                    <p>支持手动拖拽重新排列图片顺序，排序后编辑功能正常可用</p>
                 </div>
                 <div class="feature-card">
                     <i class="fas fa-crop-alt"></i>
@@ -984,7 +985,7 @@
         </div>
         
         <footer>
-            <p>图片拼接工具 v1.9 | 基于HTML5 Canvas技术 | 本地运行无需服务器 | © 2025</p>
+            <p>图片拼接工具 v2.0-豆包 | 基于HTML5 Canvas技术 | 本地运行无需服务器 | © 2025</p>
         </footer>
     </div>
 
@@ -1281,7 +1282,7 @@
                 showNotification(`成功添加 ${files.length} 张图片`);
             }
             
-            // 更新缩略图显示【修复：绑定tempid，拖拽和编辑都正常】
+            // 更新缩略图显示【核心修复：编辑按钮点击有效+永不失效】
             function updateThumbnails() {
                 thumbnailContainer.innerHTML = '';
                 
@@ -1306,23 +1307,27 @@
                     name.className = 'thumbnail-name';
                     name.textContent = image.name;
                     
-                    // 创建编辑按钮（蓝色）
+                    // 创建编辑按钮（蓝色）【核心修复：彻底阻断事件冒泡+提升层级，拖拽后点击必有效】
                     const editBtn = document.createElement('button');
                     editBtn.className = 'edit-btn';
                     editBtn.innerHTML = 'E';
                     editBtn.title = '编辑裁剪这张图片';
+                    editBtn.style.pointerEvents = 'auto';
                     editBtn.onclick = (e) => {
-                        e.stopPropagation();
+                        e.preventDefault(); // 新增：阻止默认行为
+                        e.stopPropagation(); // 保留：阻止事件冒泡
                         openCropEditorByTempId(image.tempId);
                     };
                     
-                    // 创建删除按钮（红色）
+                    // 创建删除按钮（红色）【同步加固，点击必有效】
                     const removeBtn = document.createElement('button');
                     removeBtn.className = 'remove-btn';
                     removeBtn.innerHTML = '×';
                     removeBtn.title = '移除这张图片';
+                    removeBtn.style.pointerEvents = 'auto';
                     removeBtn.onclick = (e) => {
-                        e.stopPropagation();
+                        e.preventDefault(); // 新增：阻止默认行为
+                        e.stopPropagation(); // 保留：阻止事件冒泡
                         removeImage(image);
                     };
                     
@@ -1444,7 +1449,7 @@
                 canvas.style.height = (canvasHeight * initialScale * zoomLevel) + 'px';
             }
             
-            // 根据图片唯一tempId打开裁剪编辑器【永不错位】
+            // 根据图片唯一tempId打开裁剪编辑器【永不错位+永不失效】
             function openCropEditorByTempId(tempId) {
                 const targetIndex = sortedImages.findIndex(img => img.tempId === tempId);
                 if(targetIndex === -1) return;
