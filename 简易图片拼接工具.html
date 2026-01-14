@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>图片拼接工具1.7 - 增强版</title>
+    <title>图片拼接工具1.8 - 增强版</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
@@ -773,7 +773,7 @@
 <body>
     <div class="container">
         <header>
-            <h1><i class="fas fa-image"></i> 图片拼接工具<span class="version-badge">v1.7</span></h1>
+            <h1><i class="fas fa-image"></i> 图片拼接工具<span class="version-badge">v1.8</span></h1>
             <p class="subtitle">在本地浏览器中实现基本图像拼接功能：支持多图批量处理、多种拼接模式、自定义尺寸和背景处理</p>
         </header>
         
@@ -982,7 +982,7 @@
         </div>
         
         <footer>
-            <p>图片拼接工具 v1.7 | 基于HTML5 Canvas技术 | 本地运行无需服务器 | © 2025</p>
+            <p>图片拼接工具 v1.8 | 基于HTML5 Canvas技术 | 本地运行无需服务器 | © 2025</p>
         </footer>
     </div>
 
@@ -1127,7 +1127,7 @@
                 if (!draggedItem) return;
                 
                 e.dataTransfer.effectAllowed = 'move';
-                e.dataTransfer.setData('text/html', draggedItem.innerHTML);
+                e.dataTransfer.setData('text/plain', draggedItem.dataset.index);
                 
                 // 添加拖拽视觉反馈
                 setTimeout(() => {
@@ -1207,18 +1207,18 @@
                 const newSortedImages = [];
                 
                 allItems.forEach(item => {
-                    // 通过DOM元素的索引来获取对应图片
-                    const itemIndex = Array.from(allItems).indexOf(item);
-                    if (itemIndex < images.length) {
-                        // 重新分配图片到新数组中
-                        newSortedImages.push(images[itemIndex]);
+                    // 通过data属性获取对应的图片索引
+                    const itemIndex = parseInt(item.dataset.index);
+                    if (itemIndex >= 0 && itemIndex < images.length) {
+                        // 从原始图片数组中获取对应的图片
+                        const image = images.find(img => img.tempId === itemIndex);
+                        if (image) {
+                            newSortedImages.push(image);
+                        }
                     }
                 });
                 
                 sortedImages = newSortedImages;
-                
-                // 重新渲染缩略图以确保按钮绑定正确
-                updateThumbnails();
             }
             
             // 设置拖放功能
@@ -1281,7 +1281,8 @@
                                 width: img.width,
                                 height: img.height,
                                 processed: false,
-                                originalSrc: e.target.result // 保存原始图片数据
+                                originalSrc: e.target.result, // 保存原始图片数据
+                                tempId: Date.now() + Math.random() // 临时ID用于拖拽识别
                             };
                             
                             images.push(imageData);
@@ -1291,7 +1292,8 @@
                                 name: file.name,
                                 src: e.target.result,
                                 width: img.width,
-                                height: img.height
+                                height: img.height,
+                                tempId: imageData.tempId
                             });
                             
                             updateThumbnails();
@@ -1326,6 +1328,7 @@
                     const thumbnail = document.createElement('div');
                     thumbnail.className = 'thumbnail-item';
                     thumbnail.draggable = true;
+                    thumbnail.dataset.index = image.tempId; // 使用tempId作为唯一标识
                     
                     const img = document.createElement('img');
                     img.src = image.img.src;
@@ -1366,14 +1369,14 @@
             // 移除指定图片
             function removeImage(imageToRemove) {
                 // 从主图片数组中移除
-                const indexToRemove = images.findIndex(img => img === imageToRemove);
+                const indexToRemove = images.findIndex(img => img.tempId === imageToRemove.tempId);
                 if (indexToRemove !== -1) {
                     images.splice(indexToRemove, 1);
                     originalImages.splice(indexToRemove, 1); // 同步移除原始图片数据
                 }
                 
                 // 从排序数组中也移除
-                sortedImages = sortedImages.filter(img => img !== imageToRemove);
+                sortedImages = sortedImages.filter(img => img.tempId !== imageToRemove.tempId);
                 
                 updateThumbnails();
                 updateImageCount();
@@ -1782,7 +1785,7 @@
                         sortedImages[currentEditIndex].height = cropData.height;
                         
                         // 同时更新原始数组中的图片（如果存在）
-                        const originalIndex = images.findIndex(img => img.name === sortedImages[currentEditIndex].name);
+                        const originalIndex = images.findIndex(img => img.tempId === sortedImages[currentEditIndex].tempId);
                         if (originalIndex !== -1) {
                             images[originalIndex].img = croppedImg;
                             images[originalIndex].width = cropData.width;
