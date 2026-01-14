@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>图片拼接工具2.0-豆包</title>
+    <title>图片拼接工具2.1-千问制作</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
@@ -173,8 +173,6 @@
             aspect-ratio: 1;
             cursor: move;
             transition: transform 0.2s ease, box-shadow 0.2s ease;
-            user-select: none;
-            touch-action: none;
         }
         
         .thumbnail-item img {
@@ -212,7 +210,7 @@
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            z-index: 9999;
+            z-index: 10;
             font-weight: bold;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
             transition: all 0.2s ease;
@@ -238,7 +236,7 @@
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            z-index: 9999;
+            z-index: 10;
             font-weight: bold;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
             transition: all 0.2s ease;
@@ -632,14 +630,13 @@
         
         .draggable-active {
             opacity: 0.7;
-            transform: scale(0.95);
+            transform: scale(0.9);
             border: 2px dashed var(--accent);
             box-shadow: 0 0 15px rgba(76, 201, 240, 0.7);
-            background: rgba(255,255,255,0.1);
         }
         
         .drop-highlight {
-            border: 2px solid var(--accent);
+            background: rgba(76, 201, 240, 0.6);
             transform: scale(1.05);
             box-shadow: 0 0 10px rgba(76, 201, 240, 0.8);
         }
@@ -776,7 +773,7 @@
 <body>
     <div class="container">
         <header>
-            <h1><i class="fas fa-image"></i> 图片拼接工具<span class="version-badge">v2.0-豆包</span></h1>
+            <h1><i class="fas fa-image"></i> 图片拼接工具<span class="version-badge">v2.1-千问制作</span></h1>
             <p class="subtitle">在本地浏览器中实现基本图像拼接功能：支持多图批量处理、多种拼接模式、自定义尺寸和背景处理</p>
         </header>
         
@@ -974,7 +971,7 @@
                 <div class="feature-card">
                     <i class="fas fa-arrows-alt"></i>
                     <h3>拖拽排序</h3>
-                    <p>支持手动拖拽重新排列图片顺序，排序后编辑功能正常可用</p>
+                    <p>支持手动拖拽重新排列图片顺序</p>
                 </div>
                 <div class="feature-card">
                     <i class="fas fa-crop-alt"></i>
@@ -985,7 +982,7 @@
         </div>
         
         <footer>
-            <p>图片拼接工具 v2.0-豆包 | 基于HTML5 Canvas技术 | 本地运行无需服务器 | © 2025</p>
+            <p>图片拼接工具 v2.1-千问制作 | 基于HTML5 Canvas技术 | 本地运行无需服务器 | © 2025</p>
         </footer>
     </div>
 
@@ -1115,11 +1112,11 @@
                 setupThumbnailDragAndDrop();
             }
             
-            // 设置缩略图拖拽功能【核心修复：拖拽排序】
+            // 设置缩略图拖拽功能
             function setupThumbnailDragAndDrop() {
                 thumbnailContainer.addEventListener('dragstart', handleDragStart);
                 thumbnailContainer.addEventListener('dragend', handleDragEnd);
-                thumbnailContainer.addEventListener('dragover', (e) => e.preventDefault());
+                thumbnailContainer.addEventListener('dragover', handleDragOver);
                 thumbnailContainer.addEventListener('dragenter', handleDragEnter);
                 thumbnailContainer.addEventListener('dragleave', handleDragLeave);
                 thumbnailContainer.addEventListener('drop', handleDropEvent);
@@ -1128,68 +1125,101 @@
             function handleDragStart(e) {
                 draggedItem = e.target.closest('.thumbnail-item');
                 if (!draggedItem) return;
+                
                 e.dataTransfer.effectAllowed = 'move';
-                e.dataTransfer.setData('text/plain', draggedItem.dataset.tempid);
+                e.dataTransfer.setData('text/plain', draggedItem.dataset.index);
+                
+                // 添加拖拽视觉反馈
                 setTimeout(() => {
                     draggedItem.classList.add('draggable-active');
                 }, 0);
             }
             
             function handleDragEnd(e) {
-                const allItems = document.querySelectorAll('.thumbnail-item');
-                allItems.forEach(item => {
-                    item.classList.remove('draggable-active', 'drop-highlight');
+                if (draggedItem) {
+                    draggedItem.classList.remove('draggable-active');
+                }
+                
+                // 重置所有项目类
+                const items = document.querySelectorAll('.thumbnail-item');
+                items.forEach(item => {
+                    item.classList.remove('drop-highlight');
                 });
+                
                 draggedItem = null;
                 dragOverItem = null;
+                
+                // 重新排序图片数组
+                updateSortedImagesFromDOM();
+            }
+            
+            function handleDragOver(e) {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
             }
             
             function handleDragEnter(e) {
                 e.preventDefault();
                 const item = e.target.closest('.thumbnail-item');
                 if (item && item !== draggedItem) {
-                    dragOverItem = item;
                     item.classList.add('drop-highlight');
+                    dragOverItem = item;
                 }
             }
             
             function handleDragLeave(e) {
                 const item = e.target.closest('.thumbnail-item');
-                if (item) item.classList.remove('drop-highlight');
+                if (item) {
+                    item.classList.remove('drop-highlight');
+                }
             }
             
-            // 【核心修复】拖拽落地后 同步DOM顺序 + 同步数组顺序，拖拽排序彻底生效
             function handleDropEvent(e) {
                 e.preventDefault();
-                if (!draggedItem || !dragOverItem || draggedItem === dragOverItem) return;
-
-                // 1. DOM节点移动：调整视觉顺序
-                const parent = thumbnailContainer;
-                const dragRect = draggedItem.getBoundingClientRect();
-                const dropRect = dragOverItem.getBoundingClientRect();
-                if (dragRect.top < dropRect.top) {
-                    parent.insertBefore(draggedItem, dragOverItem.nextSibling);
-                } else {
-                    parent.insertBefore(draggedItem, dragOverItem);
-                }
-
-                // 2. 核心同步：从DOM中重新读取所有图片的顺序，更新核心排序数组 sortedImages
-                syncSortedImagesFromDOM();
                 
-                // 3. 视觉反馈
-                dragOverItem.classList.remove('drop-highlight');
-                showNotification('图片顺序已更新 ✔');
+                if (dragOverItem && draggedItem && dragOverItem !== draggedItem) {
+                    // 获取当前缩略图项
+                    const allItems = Array.from(thumbnailContainer.querySelectorAll('.thumbnail-item'));
+                    const draggedIndex = allItems.indexOf(draggedItem);
+                    const dropIndex = allItems.indexOf(dragOverItem);
+                    
+                    // 在DOM中移动项目
+                    if (draggedIndex < dropIndex) {
+                        thumbnailContainer.insertBefore(draggedItem, dragOverItem.nextSibling);
+                    } else {
+                        thumbnailContainer.insertBefore(draggedItem, dragOverItem);
+                    }
+                    
+                    // 更新图片顺序
+                    updateSortedImagesFromDOM();
+                    showNotification('图片顺序已更新');
+                }
+                
+                // 移除高亮
+                if (dragOverItem) {
+                    dragOverItem.classList.remove('drop-highlight');
+                }
             }
             
-            // 【新增核心方法】从DOM同步排序数组，保证拖拽后数组和视觉一致
-            function syncSortedImagesFromDOM() {
-                const domItems = document.querySelectorAll('.thumbnail-item');
-                sortedImages = [];
-                domItems.forEach(item => {
-                    const tempId = item.dataset.tempid;
-                    const img = images.find(i => i.tempId === tempId);
-                    if (img) sortedImages.push(img);
+            // 从DOM更新排序图片数组
+            function updateSortedImagesFromDOM() {
+                const allItems = thumbnailContainer.querySelectorAll('.thumbnail-item');
+                const newSortedImages = [];
+                
+                // 重新构建排序数组，使用临时ID来确保正确映射
+                allItems.forEach(item => {
+                    const itemTempId = parseInt(item.dataset.index);
+                    // 查找对应图片
+                    const image = images.find(img => img.tempId === itemTempId);
+                    if (image) {
+                        newSortedImages.push(image);
+                    }
                 });
+                
+                sortedImages = newSortedImages;
+                
+                // 重新渲染缩略图以确保事件绑定正确
+                updateThumbnails();
             }
             
             // 设置拖放功能
@@ -1245,7 +1275,6 @@
                     reader.onload = function(e) {
                         const img = new Image();
                         img.onload = function() {
-                            const tempId = Date.now() + Math.floor(Math.random() * 10000);
                             const imageData = {
                                 name: file.name,
                                 file: file,
@@ -1253,17 +1282,19 @@
                                 width: img.width,
                                 height: img.height,
                                 processed: false,
-                                originalSrc: e.target.result,
-                                tempId: tempId
+                                originalSrc: e.target.result, // 保存原始图片数据
+                                tempId: Date.now() + Math.random() // 临时ID用于拖拽识别
                             };
                             
                             images.push(imageData);
+                            
+                            // 同时保存到原始图片数组
                             originalImages.push({
                                 name: file.name,
                                 src: e.target.result,
                                 width: img.width,
                                 height: img.height,
-                                tempId: tempId
+                                tempId: imageData.tempId
                             });
                             
                             updateThumbnails();
@@ -1282,7 +1313,7 @@
                 showNotification(`成功添加 ${files.length} 张图片`);
             }
             
-            // 更新缩略图显示【核心修复：编辑按钮点击有效+永不失效】
+            // 更新缩略图显示
             function updateThumbnails() {
                 thumbnailContainer.innerHTML = '';
                 
@@ -1291,13 +1322,14 @@
                     return;
                 }
                 
+                // 默认使用当前排序方法
                 applyCurrentSortMethod();
                 
                 sortedImages.forEach((image, index) => {
                     const thumbnail = document.createElement('div');
                     thumbnail.className = 'thumbnail-item';
                     thumbnail.draggable = true;
-                    thumbnail.dataset.tempid = image.tempId; // 关键：绑定tempid而非index
+                    thumbnail.dataset.index = image.tempId; // 使用tempId作为唯一标识
                     
                     const img = document.createElement('img');
                     img.src = image.img.src;
@@ -1307,27 +1339,23 @@
                     name.className = 'thumbnail-name';
                     name.textContent = image.name;
                     
-                    // 创建编辑按钮（蓝色）【核心修复：彻底阻断事件冒泡+提升层级，拖拽后点击必有效】
+                    // 创建编辑按钮（蓝色）
                     const editBtn = document.createElement('button');
                     editBtn.className = 'edit-btn';
                     editBtn.innerHTML = 'E';
                     editBtn.title = '编辑裁剪这张图片';
-                    editBtn.style.pointerEvents = 'auto';
                     editBtn.onclick = (e) => {
-                        e.preventDefault(); // 新增：阻止默认行为
-                        e.stopPropagation(); // 保留：阻止事件冒泡
-                        openCropEditorByTempId(image.tempId);
+                        e.stopPropagation(); // 防止拖拽事件
+                        openCropEditor(index);
                     };
                     
-                    // 创建删除按钮（红色）【同步加固，点击必有效】
+                    // 创建删除按钮（红色）
                     const removeBtn = document.createElement('button');
                     removeBtn.className = 'remove-btn';
                     removeBtn.innerHTML = '×';
                     removeBtn.title = '移除这张图片';
-                    removeBtn.style.pointerEvents = 'auto';
                     removeBtn.onclick = (e) => {
-                        e.preventDefault(); // 新增：阻止默认行为
-                        e.stopPropagation(); // 保留：阻止事件冒泡
+                        e.stopPropagation(); // 防止拖拽事件
                         removeImage(image);
                     };
                     
@@ -1341,12 +1369,16 @@
             
             // 移除指定图片
             function removeImage(imageToRemove) {
+                // 从主图片数组中移除
                 const indexToRemove = images.findIndex(img => img.tempId === imageToRemove.tempId);
                 if (indexToRemove !== -1) {
                     images.splice(indexToRemove, 1);
-                    originalImages.splice(indexToRemove, 1);
+                    originalImages.splice(indexToRemove, 1); // 同步移除原始图片数据
                 }
+                
+                // 从排序数组中也移除
                 sortedImages = sortedImages.filter(img => img.tempId !== imageToRemove.tempId);
+                
                 updateThumbnails();
                 updateImageCount();
                 
@@ -1363,6 +1395,7 @@
             
             // 自然排序算法修复
             function naturalCompare(a, b, ascending = true) {
+                // 分割字符串为数字和非数字部分
                 const regEx = /(\d+)/g;
                 const aParts = a.toLowerCase().split(regEx);
                 const bParts = b.toLowerCase().split(regEx);
@@ -1371,26 +1404,32 @@
                     let aPart = aParts[i];
                     let bPart = bParts[i];
                     
+                    // 如果部分相同，继续下一部分
                     if (aPart === bPart) continue;
                     
+                    // 检查是否是数字
                     let aIsNum = !isNaN(aPart);
                     let bIsNum = !isNaN(bPart);
                     
+                    // 如果都是数字，按数值比较
                     if (aIsNum && bIsNum) {
                         return ascending 
                             ? parseInt(aPart) - parseInt(bPart) 
                             : parseInt(bPart) - parseInt(aPart);
                     } else if (aIsNum !== bIsNum) {
+                        // 一个数字一个非数字，数字优先
                         return ascending 
                             ? (aIsNum ? -1 : 1) 
                             : (aIsNum ? 1 : -1);
                     } else {
+                        // 都是非数字，按字符串比较
                         return ascending 
                             ? aPart.localeCompare(bPart) 
                             : bPart.localeCompare(aPart);
                     }
                 }
                 
+                // 如果循环结束都没有决定顺序，则按长度
                 return ascending 
                     ? aParts.length - bParts.length 
                     : bParts.length - aParts.length;
@@ -1399,11 +1438,20 @@
             // 应用当前排序方法
             function applyCurrentSortMethod() {
                 if (currentSortMethod === 'natural') {
-                    sortedImages = [...images].sort((a, b) => naturalCompare(a.name, b.name, true));
+                    // 自然排序（默认）
+                    sortedImages = [...images].sort((a, b) => {
+                        return naturalCompare(a.name, b.name, true);
+                    });
                 } else if (currentSortMethod === 'asc') {
-                    sortedImages = [...images].sort((a, b) => naturalCompare(a.name, b.name, true));
+                    // 正序排序（自然排序）
+                    sortedImages = [...images].sort((a, b) => {
+                        return naturalCompare(a.name, b.name, true);
+                    });
                 } else if (currentSortMethod === 'desc') {
-                    sortedImages = [...images].sort((a, b) => naturalCompare(a.name, b.name, false));
+                    // 倒序排序（自然排序）
+                    sortedImages = [...images].sort((a, b) => {
+                        return naturalCompare(a.name, b.name, false);
+                    });
                 }
             }
             
@@ -1429,7 +1477,9 @@
                 
                 setTimeout(() => {
                     notification.classList.remove('show');
-                    if (isWarning) notification.classList.remove('warning');
+                    if (isWarning) {
+                        notification.classList.remove('warning');
+                    }
                 }, 3000);
             }
             
@@ -1438,31 +1488,27 @@
                 if (!canvasWidth || !canvasHeight) return;
                 
                 const previewContainer = document.querySelector('.result-preview');
-                const containerWidth = previewContainer.clientWidth - 40;
+                const containerWidth = previewContainer.clientWidth - 40; // 减去padding
                 const containerHeight = previewContainer.clientHeight - 40;
                 
+                // 计算初始缩放比例，使整个图片可见
                 const scaleX = containerWidth / canvasWidth;
                 const scaleY = containerHeight / canvasHeight;
                 const initialScale = Math.min(scaleX, scaleY, 1);
                 
+                // 应用缩放
                 canvas.style.width = (canvasWidth * initialScale * zoomLevel) + 'px';
                 canvas.style.height = (canvasHeight * initialScale * zoomLevel) + 'px';
             }
             
-            // 根据图片唯一tempId打开裁剪编辑器【永不错位+永不失效】
-            function openCropEditorByTempId(tempId) {
-                const targetIndex = sortedImages.findIndex(img => img.tempId === tempId);
-                if(targetIndex === -1) return;
-                openCropEditor(targetIndex);
-            }
-
-            // 裁剪编辑功能 - 增加索引校验，确保准确
+            // 裁剪编辑功能
             function openCropEditor(index) {
-                if(index <0 || index >= sortedImages.length) return;
+                // 现在index是排序后的索引，直接使用
                 currentEditIndex = index;
                 
                 const originalImg = new Image();
                 originalImg.onload = function() {
+                    // 设置画布尺寸
                     const maxWidth = 800;
                     const maxHeight = 600;
                     let displayWidth = originalImg.width;
@@ -1480,8 +1526,11 @@
                     
                     cropCanvas.width = displayWidth;
                     cropCanvas.height = displayHeight;
+                    
+                    // 绘制图片到画布
                     cropCtx.drawImage(originalImg, 0, 0, displayWidth, displayHeight);
                     
+                    // 初始化裁剪框为全图
                     cropData.originalWidth = originalImg.width;
                     cropData.originalHeight = originalImg.height;
                     cropData.startX = 0;
@@ -1489,12 +1538,20 @@
                     cropData.width = displayWidth;
                     cropData.height = displayHeight;
                     
+                    // 显示裁剪框
                     updateCropBox();
                     cropBox.style.display = 'block';
+                    
+                    // 设置覆盖层
                     updateOverlay();
+                    
+                    // 添加事件监听器
                     addCropEventListeners();
+                    
+                    // 显示模态框
                     cropModal.style.display = 'block';
                 };
+                // 使用当前排序图片的原始src
                 originalImg.src = sortedImages[currentEditIndex].originalSrc;
             }
 
@@ -1508,6 +1565,7 @@
                 cropBox.style.width = (cropData.width * scaleX) + 'px';
                 cropBox.style.height = (cropData.height * scaleY) + 'px';
                 
+                // 更新裁剪信息
                 document.getElementById('cropInfo').textContent = 
                     `X: ${Math.round(cropData.startX)}, Y: ${Math.round(cropData.startY)}, W: ${Math.round(cropData.width)}, H: ${Math.round(cropData.height)}`;
             }
@@ -1517,24 +1575,28 @@
                 const scaleX = cropCanvas.width / cropData.originalWidth;
                 const scaleY = cropCanvas.height / cropData.originalHeight;
                 
+                // 上方覆盖层
                 overlayTop.style.top = '0px';
                 overlayTop.style.left = '0px';
                 overlayTop.style.width = cropCanvas.width + 'px';
                 overlayTop.style.height = (cropData.startY * scaleY) + 'px';
                 overlayTop.style.display = 'block';
                 
+                // 右侧覆盖层
                 overlayRight.style.top = (cropData.startY * scaleY) + 'px';
                 overlayRight.style.left = (cropData.startX * scaleX + cropData.width * scaleX) + 'px';
                 overlayRight.style.width = (cropCanvas.width - (cropData.startX + cropData.width) * scaleX) + 'px';
                 overlayRight.style.height = (cropData.height * scaleY) + 'px';
                 overlayRight.style.display = 'block';
                 
+                // 下方覆盖层
                 overlayBottom.style.top = (cropData.startY * scaleY + cropData.height * scaleY) + 'px';
                 overlayBottom.style.left = '0px';
                 overlayBottom.style.width = cropCanvas.width + 'px';
                 overlayBottom.style.height = (cropCanvas.height - (cropData.startY + cropData.height) * scaleY) + 'px';
                 overlayBottom.style.display = 'block';
                 
+                // 左侧覆盖层
                 overlayLeft.style.top = (cropData.startY * scaleY) + 'px';
                 overlayLeft.style.left = '0px';
                 overlayLeft.style.width = (cropData.startX * scaleX) + 'px';
@@ -1548,6 +1610,7 @@
                 document.addEventListener('mousemove', handleMouseMove);
                 document.addEventListener('mouseup', handleMouseUp);
                 
+                // 为调整大小手柄添加事件监听器
                 const handles = document.querySelectorAll('.crop-box-handle');
                 handles.forEach(handle => {
                     handle.addEventListener('mousedown', (e) => {
@@ -1576,12 +1639,15 @@
                     const x = e.clientX - containerRect.left - cropData.offsetX;
                     const y = e.clientY - containerRect.top - cropData.offsetY;
                     
+                    // 计算缩放比例
                     const scaleX = cropCanvas.width / cropData.originalWidth;
                     const scaleY = cropCanvas.height / cropData.originalHeight;
                     
+                    // 转换为原始图片坐标系
                     const origX = x / scaleX;
                     const origY = y / scaleY;
                     
+                    // 边界检查
                     const maxX = cropData.originalWidth - cropData.width;
                     const maxY = cropData.originalHeight - cropData.height;
                     
@@ -1595,12 +1661,15 @@
                     const x = e.clientX - containerRect.left;
                     const y = e.clientY - containerRect.top;
                     
+                    // 计算缩放比例
                     const scaleX = cropCanvas.width / cropData.originalWidth;
                     const scaleY = cropCanvas.height / cropData.originalHeight;
                     
+                    // 转换为原始图片坐标系
                     const origX = x / scaleX;
                     const origY = y / scaleY;
                     
+                    // 根据调整手柄类型调整裁剪框
                     switch (cropData.resizeHandle) {
                         case 'crop-box-handle-nw':
                             const newWidthNW = cropData.width + (cropData.startX - origX);
@@ -1637,7 +1706,9 @@
                             break;
                         case 'crop-box-handle-e':
                             const newWidthE = origX - cropData.startX;
-                            if (newWidthE > 10) cropData.width = newWidthE;
+                            if (newWidthE > 10) {
+                                cropData.width = newWidthE;
+                            }
                             break;
                         case 'crop-box-handle-sw':
                             const newWidthSW = cropData.width + (cropData.startX - origX);
@@ -1650,7 +1721,9 @@
                             break;
                         case 'crop-box-handle-s':
                             const newHeightS = origY - cropData.startY;
-                            if (newHeightS > 10) cropData.height = newHeightS;
+                            if (newHeightS > 10) {
+                                cropData.height = newHeightS;
+                            }
                             break;
                         case 'crop-box-handle-se':
                             const newWidthSE = origX - cropData.startX;
@@ -1662,8 +1735,13 @@
                             break;
                     }
                     
-                    if (cropData.startX + cropData.width > cropData.originalWidth) cropData.width = cropData.originalWidth - cropData.startX;
-                    if (cropData.startY + cropData.height > cropData.originalHeight) cropData.height = cropData.originalHeight - cropData.startY;
+                    // 边界检查
+                    if (cropData.startX + cropData.width > cropData.originalWidth) {
+                        cropData.width = cropData.originalWidth - cropData.startX;
+                    }
+                    if (cropData.startY + cropData.height > cropData.originalHeight) {
+                        cropData.height = cropData.originalHeight - cropData.startY;
+                    }
                     
                     updateCropBox();
                     updateOverlay();
@@ -1683,11 +1761,13 @@
                     return;
                 }
                 
+                // 创建裁剪画布
                 const cropResultCanvas = document.createElement('canvas');
                 const cropResultCtx = cropResultCanvas.getContext('2d');
                 cropResultCanvas.width = cropData.width;
                 cropResultCanvas.height = cropData.height;
                 
+                // 从原图裁剪
                 const originalImg = new Image();
                 originalImg.onload = function() {
                     cropResultCtx.drawImage(
@@ -1696,13 +1776,16 @@
                         0, 0, cropData.width, cropData.height
                     );
                     
+                    // 将裁剪结果保存到对应图片对象
                     const croppedData = cropResultCanvas.toDataURL();
                     const croppedImg = new Image();
                     croppedImg.onload = function() {
+                        // 更新排序数组中的图片对象
                         sortedImages[currentEditIndex].img = croppedImg;
                         sortedImages[currentEditIndex].width = cropData.width;
                         sortedImages[currentEditIndex].height = cropData.height;
                         
+                        // 同时更新原始数组中的图片（如果存在）
                         const originalIndex = images.findIndex(img => img.tempId === sortedImages[currentEditIndex].tempId);
                         if (originalIndex !== -1) {
                             images[originalIndex].img = croppedImg;
@@ -1710,8 +1793,12 @@
                             images[originalIndex].height = cropData.height;
                         }
                         
+                        // 更新显示
                         updateThumbnails();
+                        
+                        // 关闭模态框
                         closeCropModal();
+                        
                         showNotification('裁剪完成，裁剪结果将用于拼接');
                     };
                     croppedImg.src = croppedData;
@@ -1721,14 +1808,18 @@
 
             function closeCropModal() {
                 cropModal.style.display = 'none';
+                
+                // 清理状态
                 cropData.isDragging = false;
                 cropData.isResizing = false;
                 cropData.resizeHandle = null;
                 
+                // 移除事件监听器
                 cropBox.removeEventListener('mousedown', handleCropBoxMouseDown);
                 document.removeEventListener('mousemove', handleMouseMove);
                 document.removeEventListener('mouseup', handleMouseUp);
                 
+                // 隐藏覆盖层和裁剪框
                 cropBox.style.display = 'none';
                 overlayTop.style.display = 'none';
                 overlayRight.style.display = 'none';
@@ -1736,27 +1827,38 @@
                 overlayLeft.style.display = 'none';
             }
 
-            // VRC预设功能 优化修复：自适应16:9比例，解决小图报错
+            // VRC预设功能
             function applyVRCPreset() {
-                const ratio = 16 / 9;
-                let presetWidth = Math.min(cropData.originalWidth, 1920);
-                let presetHeight = Math.min(cropData.originalHeight, presetWidth / ratio);
-                const presetX = (cropData.originalWidth - presetWidth) / 2;
-                const presetY = (cropData.originalHeight - presetHeight) / 2;
-
+                // VRC预设：X: 64, Y: 69, W: 1920, H: 1080
+                const presetX = 64;
+                const presetY = 69;
+                const presetWidth = 1920;
+                const presetHeight = 1080;
+                
+                // 检查图片是否足够大以应用预设
+                if (cropData.originalWidth < presetX + presetWidth || cropData.originalHeight < presetY + presetHeight) {
+                    showNotification('图片尺寸不足以应用VRC预设！', true);
+                    return;
+                }
+                
+                // 更新裁剪数据
                 cropData.startX = presetX;
                 cropData.startY = presetY;
                 cropData.width = presetWidth;
                 cropData.height = presetHeight;
-
+                
+                // 更新UI
                 updateCropBox();
                 updateOverlay();
-                showNotification('已应用VRC 16:9 最优预设');
+                
+                showNotification('已应用VRC预设');
             }
 
             // 点击模态框外部关闭
             window.onclick = function(event) {
-                if (event.target === cropModal) closeCropModal();
+                if (event.target === cropModal) {
+                    closeCropModal();
+                }
             }
 
             // 处理图片拼接
@@ -1774,6 +1876,7 @@
                     const useUniformSize = uniformSize.checked;
                     const sizeMode = document.getElementById('sizeMode').value;
                     
+                    // 统一尺寸
                     let uniformWidth = 0;
                     let uniformHeight = 0;
                     if (useUniformSize) {
@@ -1781,6 +1884,7 @@
                         uniformHeight = parseInt(document.getElementById('imgHeight').value) || 128;
                     }
                     
+                    // 计算画布大小
                     canvasWidth = 0;
                     canvasHeight = 0;
                     let rows = 1;
@@ -1789,60 +1893,90 @@
                     if (layout === 'grid') {
                         rows = parseInt(document.getElementById('rowsPerCol').value) || 3;
                         cols = parseInt(document.getElementById('colsPerRow').value) || 3;
+                        
+                        // 计算网格所需行列数
                         const totalImages = sortedImages.length;
                         rows = Math.ceil(totalImages / cols);
                         
                         canvasWidth = cols * (useUniformSize ? uniformWidth : Math.max(...sortedImages.map(img => img.width))) + (cols - 1) * spacing;
                         canvasHeight = rows * (useUniformSize ? uniformHeight : Math.max(...sortedImages.map(img => img.height))) + (rows - 1) * spacing;
                     } else if (layout === 'horizontal') {
-                        canvasWidth = sortedImages.reduce((sum, img) => sum + (useUniformSize ? uniformWidth : img.width), 0) + spacing * (sortedImages.length - 1);
+                        canvasWidth = sortedImages.reduce((sum, img) => {
+                            return sum + (useUniformSize ? uniformWidth : img.width);
+                        }, 0) + spacing * (sortedImages.length - 1);
                         canvasHeight = Math.max(...sortedImages.map(img => useUniformSize ? uniformHeight : img.height));
-                    } else {
-                        canvasHeight = sortedImages.reduce((sum, img) => sum + (useUniformSize ? uniformHeight : img.height), 0) + spacing * (sortedImages.length - 1);
+                    } else { // vertical
+                        canvasHeight = sortedImages.reduce((sum, img) => {
+                            return sum + (useUniformSize ? uniformHeight : img.height);
+                        }, 0) + spacing * (sortedImages.length - 1);
                         canvasWidth = Math.max(...sortedImages.map(img => useUniformSize ? uniformWidth : img.width));
                     }
                     
+                    // 设置画布尺寸
                     canvas.width = canvasWidth;
                     canvas.height = canvasHeight;
+                    
+                    // 清除画布
                     ctx.clearRect(0, 0, canvas.width, canvas.height);
                     
+                    // 绘制背景 - 修复填充透明区域选项
                     if (outputFormat.value === 'jpeg' || (outputFormat.value === 'png' && fillTransparent)) {
                         ctx.fillStyle = bgColor;
                         ctx.fillRect(0, 0, canvas.width, canvas.height);
                     }
                     
+                    // 绘制图片
                     let x = 0, y = 0;
                     
                     for (let i = 0; i < sortedImages.length; i++) {
                         const img = sortedImages[i].img;
+                        
+                        // 当前图片尺寸
                         let imgWidth = img.width;
                         let imgHeight = img.height;
                         
+                        // 如果统一尺寸，调整图片尺寸
                         if (useUniformSize) {
                             imgWidth = uniformWidth;
                             imgHeight = uniformHeight;
                         }
                         
+                        // 计算位置
                         let drawX = x;
                         let drawY = y;
                         
+                        // 仅当布局是水平或垂直且尺寸不统一时需要居中
                         if (!useUniformSize) {
-                            if (layout === 'horizontal') drawY = (canvasHeight - imgHeight) / 2;
-                            else if (layout === 'vertical') drawX = (canvasWidth - imgWidth) / 2;
+                            if (layout === 'horizontal') {
+                                drawY = (canvasHeight - imgHeight) / 2;
+                            } else if (layout === 'vertical') {
+                                drawX = (canvasWidth - imgWidth) / 2;
+                            }
                         }
                         
+                        // 处理方式
                         if (sizeMode === 'stretch') {
-                            if (useUniformSize) ctx.drawImage(img, drawX, drawY, imgWidth, imgHeight);
-                            else ctx.drawImage(img, drawX, drawY);
+                            // 拉伸填充
+                            if (useUniformSize) {
+                                ctx.drawImage(img, drawX, drawY, imgWidth, imgHeight);
+                            } else {
+                                ctx.drawImage(img, drawX, drawY);
+                            }
                         } else if (sizeMode === 'cover') {
+                            // 居中裁剪
                             if (useUniformSize) {
                                 const scale = Math.max(imgWidth / img.width, imgHeight / img.height);
                                 const newWidth = img.width * scale;
                                 const newHeight = img.height * scale;
                                 const offsetX = (imgWidth - newWidth) / 2;
                                 const offsetY = (imgHeight - newHeight) / 2;
-                                ctx.drawImage(img, drawX + offsetX, drawY + offsetY, newWidth, newHeight);
+                                
+                                ctx.drawImage(img, 
+                                    drawX + offsetX, drawY + offsetY, 
+                                    newWidth, newHeight
+                                );
                             } else {
+                                // 当不统一尺寸时，只在sizeMode为cover时居中裁剪
                                 const targetWidth = imgWidth;
                                 const targetHeight = imgHeight;
                                 const scale = Math.max(targetWidth / img.width, targetHeight / img.height);
@@ -1850,24 +1984,38 @@
                                 const newHeight = img.height * scale;
                                 const offsetX = (targetWidth - newWidth) / 2;
                                 const offsetY = (targetHeight - newHeight) / 2;
-                                ctx.drawImage(img, drawX + offsetX, drawY + offsetY, newWidth, newHeight);
+                                
+                                ctx.drawImage(img, 
+                                    drawX + offsetX, drawY + offsetY, 
+                                    newWidth, newHeight
+                                );
                             }
                         } else {
+                            // 仅居中图片
                             if (useUniformSize) {
+                                // 仅居中图片
+                                const offsetX = (imgWidth - img.width) / 2;
+                                const offsetY = (imgHeight - img.height) / 2;
+                                
+                                // 透明区域填充只应用于统一尺寸的透明区域，不影响图片本身
                                 if (fillTransparent) {
                                     ctx.fillStyle = bgColor;
                                     ctx.fillRect(drawX, drawY, imgWidth, imgHeight);
                                 }
-                                const offsetX = (imgWidth - img.width) / 2;
-                                const offsetY = (imgHeight - img.height) / 2;
-                                ctx.drawImage(img, drawX + offsetX, drawY + offsetY, img.width, img.height);
+                                
+                                ctx.drawImage(img, 
+                                    drawX + offsetX, drawY + offsetY, 
+                                    img.width, img.height
+                                );
                             } else {
+                                // 不统一尺寸且仅居中图片
                                 drawX = (canvasWidth - img.width) / 2;
                                 drawY = (canvasHeight - img.height) / 2;
                                 ctx.drawImage(img, drawX, drawY);
                             }
                         }
                         
+                        // 移动到下一个位置
                         if (layout === 'grid') {
                             if ((i + 1) % cols === 0) {
                                 x = 0;
@@ -1884,11 +2032,15 @@
                     
                     processedCanvas = canvas;
                     downloadBtn.disabled = false;
+                    
+                    // 更新总尺寸提示
                     previewSize.textContent = `总尺寸: ${canvasWidth} × ${canvasHeight} 像素`;
                     previewSize.style.display = 'block';
                     
+                    // 重置缩放并调整预览
                     zoomLevel = 1;
                     adjustPreviewZoom();
+                    
                     showNotification('图片拼接完成！');
                 } catch (error) {
                     console.error('处理图片时出错:', error);
@@ -1948,7 +2100,7 @@
                 clearBtn.addEventListener('click', () => {
                     images = [];
                     sortedImages = [];
-                    originalImages = [];
+                    originalImages = []; // 清空原始图片数组
                     updateThumbnails();
                     updateImageCount();
                     processBtn.disabled = true;
@@ -1961,23 +2113,27 @@
                 
                 // 布局模式切换
                 layoutMode.addEventListener('change', () => {
-                    gridControls.style.display = layoutMode.value === 'grid' ? 'block' : 'none';
+                    if (layoutMode.value === 'grid') {
+                        gridControls.style.display = 'block';
+                    } else {
+                        gridControls.style.display = 'none';
+                    }
                 });
                 
                 // 统一尺寸切换
                 uniformSize.addEventListener('change', () => {
-                    sizeControls.style.display = uniformSize.checked ? 'block' : 'none';
+                    document.getElementById('sizeControls').style.display = uniformSize.checked ? 'block' : 'none';
                 });
                 
                 // 输出格式变化
                 outputFormat.addEventListener('change', () => {
                     if (outputFormat.value === 'jpeg') {
-                        jpegWarning.style.display = 'block';
-                        fillTransparent.checked = true;
-                        fillTransparent.disabled = true;
+                        document.getElementById('jpegWarning').style.display = 'block';
+                        document.getElementById('fillTransparent').checked = true;
+                        document.getElementById('fillTransparent').disabled = true;
                     } else {
-                        jpegWarning.style.display = 'none';
-                        fillTransparent.disabled = false;
+                        document.getElementById('jpegWarning').style.display = 'none';
+                        document.getElementById('fillTransparent').disabled = false;
                     }
                 });
                 
@@ -1989,20 +2145,20 @@
                 
                 // 重置按钮
                 resetBtn.addEventListener('click', () => {
-                    layoutMode.value = 'horizontal';
-                    spacing.value = '0';
-                    bgColor.value = '#000000';
-                    fillTransparent.checked = true;
-                    uniformSize.checked = false;
-                    sizeMode.value = 'stretch';
-                    outputFormat.value = 'png';
-                    quality.value = '90';
-                    qualityValue.textContent = '90%';
-                    fillTransparent.disabled = false;
+                    document.getElementById('layoutMode').value = 'horizontal';
+                    document.getElementById('spacing').value = '0';
+                    document.getElementById('bgColor').value = '#000000';
+                    document.getElementById('fillTransparent').checked = true;
+                    document.getElementById('uniformSize').checked = false;
+                    document.getElementById('sizeMode').value = 'stretch';
+                    document.getElementById('outputFormat').value = 'png';
+                    document.getElementById('quality').value = '90';
+                    document.getElementById('qualityValue').textContent = '90%';
+                    document.getElementById('fillTransparent').disabled = false;
                     
                     gridControls.style.display = 'none';
-                    sizeControls.style.display = 'none';
-                    jpegWarning.style.display = 'none';
+                    document.getElementById('sizeControls').style.display = 'none';
+                    document.getElementById('jpegWarning').style.display = 'none';
                     previewSize.textContent = '';
                     
                     canvas.width = 0;
@@ -2013,18 +2169,27 @@
                 // 锁定按钮
                 lockBtn.addEventListener('click', () => {
                     lockAspectRatio = !lockAspectRatio;
-                    lockBtn.innerHTML = lockAspectRatio ? '<i class="fas fa-lock"></i>' : '<i class="fas fa-lock-open"></i>';
-                    if (lockAspectRatio) imgHeight.value = imgWidth.value;
+                    lockBtn.innerHTML = lockAspectRatio 
+                        ? '<i class="fas fa-lock"></i>' 
+                        : '<i class="fas fa-lock-open"></i>';
+                    
+                    if (lockAspectRatio) {
+                        document.getElementById('imgHeight').value = document.getElementById('imgWidth').value;
+                    }
                 });
                 
                 // 宽度变化同步高度
-                imgWidth.addEventListener('input', () => {
-                    if (lockAspectRatio) imgHeight.value = imgWidth.value;
+                document.getElementById('imgWidth').addEventListener('input', () => {
+                    if (lockAspectRatio) {
+                        document.getElementById('imgHeight').value = document.getElementById('imgWidth').value;
+                    }
                 });
                 
                 // 高度变化同步宽度
-                imgHeight.addEventListener('input', () => {
-                    if (lockAspectRatio) imgWidth.value = imgHeight.value;
+                document.getElementById('imgHeight').addEventListener('input', () => {
+                    if (lockAspectRatio) {
+                        document.getElementById('imgWidth').value = document.getElementById('imgHeight').value;
+                    }
                 });
                 
                 // 缩放按钮
@@ -2045,7 +2210,9 @@
                 
                 // 窗口大小变化时调整预览
                 window.addEventListener('resize', () => {
-                    if (processedCanvas) adjustPreviewZoom();
+                    if (processedCanvas) {
+                        adjustPreviewZoom();
+                    }
                 });
                 
                 // 质量滑块事件
