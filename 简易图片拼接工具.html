@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>图片拼接工具1.2 - 增强版</title>
+    <title>图片拼接工具1.3 - 增强版</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
@@ -218,6 +218,32 @@
         
         .remove-btn:hover {
             background: rgba(255, 0, 0, 1);
+            transform: scale(1.1);
+        }
+        
+        .edit-btn {
+            position: absolute;
+            top: 5px;
+            right: 30px;
+            background: rgba(67, 97, 238, 0.9);
+            color: white;
+            border: 2px solid white;
+            border-radius: 4px;
+            width: 20px;
+            height: 20px;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 10;
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            transition: all 0.2s ease;
+        }
+        
+        .edit-btn:hover {
+            background: rgba(51, 77, 204, 1);
             transform: scale(1.1);
         }
         
@@ -614,12 +640,106 @@
             transform: scale(1.05);
             box-shadow: 0 0 10px rgba(76, 201, 240, 0.8);
         }
+        
+        /* 裁剪编辑器模态框 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.8);
+        }
+        
+        .modal-content {
+            background-color: white;
+            margin: 2% auto;
+            padding: 20px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 1000px;
+            position: relative;
+        }
+        
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            position: absolute;
+            right: 10px;
+            top: 10px;
+        }
+        
+        .close:hover {
+            color: black;
+        }
+        
+        .crop-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .crop-image-container {
+            position: relative;
+            margin-bottom: 20px;
+            overflow: hidden;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+        }
+        
+        #cropCanvas {
+            max-width: 100%;
+            max-height: 60vh;
+            display: block;
+        }
+        
+        .crop-overlay {
+            position: absolute;
+            border: 2px dashed #ff0000;
+            background: transparent;
+        }
+        
+        .crop-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            justify-content: center;
+        }
+        
+        .crop-action-btn {
+            background: #FF9800;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .crop-action-btn.confirm {
+            background: #4CAF50;
+        }
+        
+        .crop-action-btn.cancel {
+            background: #f44336;
+        }
+        
+        .crop-info {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #666;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1><i class="fas fa-image"></i> 图片拼接工具<span class="version-badge">v1.2</span></h1>
+            <h1><i class="fas fa-image"></i> 图片拼接工具<span class="version-badge">v1.3</span></h1>
             <p class="subtitle">在本地浏览器中实现基本图像拼接功能：支持多图批量处理、多种拼接模式、自定义尺寸和背景处理</p>
         </header>
         
@@ -773,7 +893,7 @@
         </div>
         
         <div class="bottom-notice">
-            <i class="fas fa-info-circle"></i> 新增功能：支持单张图片移除和手动拖拽排序！现在您可以直接点击缩略图上的红色叉号移除图片，也可以通过拖拽来重新排列图片顺序。
+            <i class="fas fa-info-circle"></i> 新增功能：支持单张图片移除、手动拖拽排序和临时裁剪编辑！现在您可以直接点击缩略图上的蓝色编辑按钮对单张图片进行临时裁剪，编辑后的图片仅用于拼接，不会影响您的原始图片。
         </div>
         
         <div class="info-section">
@@ -819,12 +939,40 @@
                     <h3>拖拽排序</h3>
                     <p>支持手动拖拽重新排列图片顺序</p>
                 </div>
+                <div class="feature-card">
+                    <i class="fas fa-crop-alt"></i>
+                    <h3>临时裁剪</h3>
+                    <p>可对单张图片进行临时裁剪，裁剪结果仅用于拼接，不修改原始图片</p>
+                </div>
             </div>
         </div>
         
         <footer>
-            <p>图片拼接工具 v1.2 | 基于HTML5 Canvas技术 | 本地运行无需服务器 | © 2025</p>
+            <p>图片拼接工具 v1.3 | 基于HTML5 Canvas技术 | 本地运行无需服务器 | © 2025</p>
         </footer>
+    </div>
+
+    <!-- 裁剪编辑器模态框 -->
+    <div id="cropModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeCropModal()">&times;</span>
+            <div class="crop-container">
+                <h3>裁剪图片</h3>
+                <div class="crop-image-container">
+                    <canvas id="cropCanvas"></canvas>
+                    <div id="cropOverlay" class="crop-overlay" style="display: none;"></div>
+                </div>
+                <div class="crop-controls">
+                    <button class="crop-action-btn" onclick="startCropSelection()">开始裁剪</button>
+                    <button class="crop-action-btn confirm" onclick="confirmCrop()">确认裁剪</button>
+                    <button class="crop-action-btn cancel" onclick="cancelCrop()">取消裁剪</button>
+                </div>
+                <div class="crop-info">
+                    <p>拖拽鼠标选择裁剪区域，完成后点击"确认裁剪"</p>
+                    <p>当前裁剪区域: <span id="cropInfo">未选择</span></p>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div class="notification" id="notification">操作成功！</div>
@@ -861,6 +1009,11 @@
             const zoomOutBtn = document.getElementById('zoomOutBtn');
             const resetZoomBtn = document.getElementById('resetZoomBtn');
             
+            // 裁剪编辑器相关元素
+            const cropModal = document.getElementById('cropModal');
+            const cropCanvas = document.getElementById('cropCanvas');
+            const cropCtx = cropCanvas.getContext('2d');
+            
             // 全局变量
             let images = [];
             let sortedImages = [];
@@ -872,7 +1025,11 @@
             let canvasHeight = 0; // 实际画布高度
             let draggedItem = null;
             let dragOverItem = null;
-            
+            let currentEditIndex = -1; // 当前正在编辑的图片索引
+            let cropStartX, cropStartY, cropEndX, cropEndY;
+            let isSelecting = false;
+            let originalImages = []; // 存储原始图片数据
+
             // 初始化
             function init() {
                 // 点击上传区域触发文件选择
@@ -1051,14 +1208,26 @@
                     reader.onload = function(e) {
                         const img = new Image();
                         img.onload = function() {
-                            images.push({
+                            const imageData = {
                                 name: file.name,
                                 file: file,
                                 img: img,
                                 width: img.width,
                                 height: img.height,
-                                processed: false
+                                processed: false,
+                                originalSrc: e.target.result // 保存原始图片数据
+                            };
+                            
+                            images.push(imageData);
+                            
+                            // 同时保存到原始图片数组
+                            originalImages.push({
+                                name: file.name,
+                                src: e.target.result,
+                                width: img.width,
+                                height: img.height
                             });
+                            
                             updateThumbnails();
                             updateImageCount();
                             
@@ -1100,7 +1269,17 @@
                     name.className = 'thumbnail-name';
                     name.textContent = image.name;
                     
-                    // 创建删除按钮
+                    // 创建编辑按钮（蓝色）
+                    const editBtn = document.createElement('button');
+                    editBtn.className = 'edit-btn';
+                    editBtn.innerHTML = 'E';
+                    editBtn.title = '编辑裁剪这张图片';
+                    editBtn.onclick = (e) => {
+                        e.stopPropagation(); // 防止拖拽事件
+                        openCropEditor(index);
+                    };
+                    
+                    // 创建删除按钮（红色）
                     const removeBtn = document.createElement('button');
                     removeBtn.className = 'remove-btn';
                     removeBtn.innerHTML = '×';
@@ -1112,6 +1291,7 @@
                     
                     thumbnail.appendChild(img);
                     thumbnail.appendChild(name);
+                    thumbnail.appendChild(editBtn);
                     thumbnail.appendChild(removeBtn);
                     thumbnailContainer.appendChild(thumbnail);
                 });
@@ -1120,7 +1300,11 @@
             // 移除指定图片
             function removeImage(imageToRemove) {
                 // 从主图片数组中移除
-                images = images.filter(img => img !== imageToRemove);
+                const indexToRemove = images.findIndex(img => img === imageToRemove);
+                if (indexToRemove !== -1) {
+                    images.splice(indexToRemove, 1);
+                    originalImages.splice(indexToRemove, 1); // 同步移除原始图片数据
+                }
                 
                 // 从排序数组中也移除
                 sortedImages = sortedImages.filter(img => img !== imageToRemove);
@@ -1247,6 +1431,199 @@
                 canvas.style.height = (canvasHeight * initialScale * zoomLevel) + 'px';
             }
             
+            // 裁剪编辑功能
+            function openCropEditor(index) {
+                currentEditIndex = index;
+                const originalImg = new Image();
+                originalImg.onload = function() {
+                    // 设置画布尺寸
+                    const maxWidth = 800;
+                    const maxHeight = 600;
+                    let displayWidth = originalImg.width;
+                    let displayHeight = originalImg.height;
+                    
+                    if (displayWidth > maxWidth) {
+                        displayHeight = (maxWidth / displayWidth) * displayHeight;
+                        displayWidth = maxWidth;
+                    }
+                    
+                    if (displayHeight > maxHeight) {
+                        displayWidth = (maxHeight / displayHeight) * displayWidth;
+                        displayHeight = maxHeight;
+                    }
+                    
+                    cropCanvas.width = displayWidth;
+                    cropCanvas.height = displayHeight;
+                    
+                    // 绘制图片到画布
+                    cropCtx.drawImage(originalImg, 0, 0, displayWidth, displayHeight);
+                    
+                    // 显示模态框
+                    cropModal.style.display = 'block';
+                };
+                originalImg.src = originalImages[index].src;
+            }
+
+            function startCropSelection() {
+                isSelecting = true;
+                cropStartX = cropStartY = cropEndX = cropEndY = null;
+                
+                cropCanvas.addEventListener('mousedown', onMouseDown);
+                cropCanvas.addEventListener('mousemove', onMouseMove);
+                cropCanvas.addEventListener('mouseup', onMouseUp);
+            }
+
+            function onMouseDown(e) {
+                if (!isSelecting) return;
+                
+                const rect = cropCanvas.getBoundingClientRect();
+                cropStartX = e.clientX - rect.left;
+                cropStartY = e.clientY - rect.top;
+            }
+
+            function onMouseMove(e) {
+                if (!isSelecting || cropStartX === undefined) return;
+                
+                const rect = cropCanvas.getBoundingClientRect();
+                cropEndX = e.clientX - rect.left;
+                cropEndY = e.clientY - rect.top;
+                
+                // 重新绘制图片
+                const originalImg = new Image();
+                originalImg.src = originalImages[currentEditIndex].src;
+                originalImg.onload = function() {
+                    cropCtx.clearRect(0, 0, cropCanvas.width, cropCanvas.height);
+                    cropCtx.drawImage(originalImg, 0, 0, cropCanvas.width, cropCanvas.height);
+                    
+                    // 绘制裁剪框
+                    if (cropEndX !== undefined && cropEndY !== undefined) {
+                        const x = Math.min(cropStartX, cropEndX);
+                        const y = Math.min(cropStartY, cropEndY);
+                        const width = Math.abs(cropEndX - cropStartX);
+                        const height = Math.abs(cropEndY - cropStartY);
+                        
+                        cropCtx.strokeStyle = '#ff0000';
+                        cropCtx.lineWidth = 2;
+                        cropCtx.strokeRect(x, y, width, height);
+                        
+                        // 更新裁剪信息
+                        document.getElementById('cropInfo').textContent = 
+                            `X: ${Math.round(x)}, Y: ${Math.round(y)}, W: ${Math.round(width)}, H: ${Math.round(height)}`;
+                    }
+                };
+            }
+
+            function onMouseUp(e) {
+                if (!isSelecting) return;
+                
+                const rect = cropCanvas.getBoundingClientRect();
+                cropEndX = e.clientX - rect.left;
+                cropEndY = e.clientY - rect.top;
+                
+                // 移除事件监听器
+                cropCanvas.removeEventListener('mousedown', onMouseDown);
+                cropCanvas.removeEventListener('mousemove', onMouseMove);
+                cropCanvas.removeEventListener('mouseup', onMouseUp);
+            }
+
+            function confirmCrop() {
+                if (cropStartX === undefined) {
+                    showNotification('请选择裁剪区域！', true);
+                    return;
+                }
+                
+                const x = Math.min(cropStartX, cropEndX);
+                const y = Math.min(cropStartY, cropEndY);
+                const width = Math.abs(cropEndX - cropStartX);
+                const height = Math.abs(cropEndY - cropStartY);
+                
+                if (width <= 0 || height <= 0) {
+                    showNotification('请选择有效的裁剪区域！', true);
+                    return;
+                }
+                
+                // 创建裁剪画布
+                const cropResultCanvas = document.createElement('canvas');
+                const cropResultCtx = cropResultCanvas.getContext('2d');
+                cropResultCanvas.width = width;
+                cropResultCanvas.height = height;
+                
+                // 从原图裁剪
+                const originalImg = new Image();
+                originalImg.onload = function() {
+                    // 计算原始图片的缩放比例
+                    const originalWidth = originalImages[currentEditIndex].width;
+                    const originalHeight = originalImages[currentEditIndex].height;
+                    
+                    const scaleX = originalWidth / cropCanvas.width;
+                    const scaleY = originalHeight / cropCanvas.height;
+                    
+                    // 计算实际裁剪坐标
+                    const actualX = x * scaleX;
+                    const actualY = y * scaleY;
+                    const actualWidth = width * scaleX;
+                    const actualHeight = height * scaleY;
+                    
+                    cropResultCtx.drawImage(
+                        originalImg,
+                        actualX, actualY, actualWidth, actualHeight,
+                        0, 0, width, height
+                    );
+                    
+                    // 将裁剪结果保存到对应图片对象
+                    const croppedData = cropResultCanvas.toDataURL();
+                    const croppedImg = new Image();
+                    croppedImg.onload = function() {
+                        // 更新图片对象
+                        sortedImages[currentEditIndex].img = croppedImg;
+                        sortedImages[currentEditIndex].width = width;
+                        sortedImages[currentEditIndex].height = height;
+                        
+                        // 也要更新原始数组中的图片
+                        const originalIndex = images.findIndex(img => img.name === sortedImages[currentEditIndex].name);
+                        if (originalIndex !== -1) {
+                            images[originalIndex].img = croppedImg;
+                            images[originalIndex].width = width;
+                            images[originalIndex].height = height;
+                        }
+                        
+                        // 更新显示
+                        updateThumbnails();
+                        
+                        // 关闭模态框
+                        closeCropModal();
+                        
+                        showNotification('裁剪完成，裁剪结果将用于拼接');
+                    };
+                    croppedImg.src = croppedData;
+                };
+                originalImg.src = originalImages[currentEditIndex].src;
+            }
+
+            function cancelCrop() {
+                closeCropModal();
+            }
+
+            function closeCropModal() {
+                cropModal.style.display = 'none';
+                
+                // 清理状态
+                isSelecting = false;
+                cropStartX = cropStartY = cropEndX = cropEndY = undefined;
+                
+                // 移除事件监听器
+                cropCanvas.removeEventListener('mousedown', onMouseDown);
+                cropCanvas.removeEventListener('mousemove', onMouseMove);
+                cropCanvas.removeEventListener('mouseup', onMouseUp);
+            }
+
+            // 点击模态框外部关闭
+            window.onclick = function(event) {
+                if (event.target === cropModal) {
+                    closeCropModal();
+                }
+            }
+
             // 处理图片拼接
             function processImages() {
                 if (images.length === 0) {
@@ -1266,8 +1643,8 @@
                     let uniformWidth = 0;
                     let uniformHeight = 0;
                     if (useUniformSize) {
-                        uniformWidth = parseInt(imgWidth.value) || 128;
-                        uniformHeight = parseInt(imgHeight.value) || 128;
+                        uniformWidth = parseInt(document.getElementById('imgWidth').value) || 128;
+                        uniformHeight = parseInt(document.getElementById('imgHeight').value) || 128;
                     }
                     
                     // 计算画布大小
@@ -1314,7 +1691,7 @@
                     // 绘制图片
                     let x = 0, y = 0;
                     
-                    for (let i =  0; i < sortedImages.length; i++) {
+                    for (let i = 0; i < sortedImages.length; i++) {
                         const img = sortedImages[i].img;
                         
                         // 当前图片尺寸
@@ -1480,6 +1857,7 @@
                 clearBtn.addEventListener('click', () => {
                     images = [];
                     sortedImages = [];
+                    originalImages = []; // 清空原始图片数组
                     updateThumbnails();
                     updateImageCount();
                     processBtn.disabled = true;
@@ -1501,17 +1879,17 @@
                 
                 // 统一尺寸切换
                 uniformSize.addEventListener('change', () => {
-                    sizeControls.style.display = uniformSize.checked ? 'block' : 'none';
+                    document.getElementById('sizeControls').style.display = uniformSize.checked ? 'block' : 'none';
                 });
                 
                 // 输出格式变化
                 outputFormat.addEventListener('change', () => {
                     if (outputFormat.value === 'jpeg') {
-                        jpegWarning.style.display = 'block';
+                        document.getElementById('jpegWarning').style.display = 'block';
                         document.getElementById('fillTransparent').checked = true;
                         document.getElementById('fillTransparent').disabled = true;
                     } else {
-                        jpegWarning.style.display = 'none';
+                        document.getElementById('jpegWarning').style.display = 'none';
                         document.getElementById('fillTransparent').disabled = false;
                     }
                 });
@@ -1536,8 +1914,8 @@
                     document.getElementById('fillTransparent').disabled = false;
                     
                     gridControls.style.display = 'none';
-                    sizeControls.style.display = 'none';
-                    jpegWarning.style.display = 'none';
+                    document.getElementById('sizeControls').style.display = 'none';
+                    document.getElementById('jpegWarning').style.display = 'none';
                     previewSize.textContent = '';
                     
                     canvas.width = 0;
@@ -1553,21 +1931,21 @@
                         : '<i class="fas fa-lock-open"></i>';
                     
                     if (lockAspectRatio) {
-                        imgHeight.value = imgWidth.value;
+                        document.getElementById('imgHeight').value = document.getElementById('imgWidth').value;
                     }
                 });
                 
                 // 宽度变化同步高度
-                imgWidth.addEventListener('input', () => {
+                document.getElementById('imgWidth').addEventListener('input', () => {
                     if (lockAspectRatio) {
-                        imgHeight.value = imgWidth.value;
+                        document.getElementById('imgHeight').value = document.getElementById('imgWidth').value;
                     }
                 });
                 
                 // 高度变化同步宽度
-                imgHeight.addEventListener('input', () => {
+                document.getElementById('imgHeight').addEventListener('input', () => {
                     if (lockAspectRatio) {
-                        imgWidth.value = imgHeight.value;
+                        document.getElementById('imgWidth').value = document.getElementById('imgHeight').value;
                     }
                 });
                 
