@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>图片拼接工具2.0-豆包 最终完整版</title>
+    <title>图片拼接工具2.0-DS</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
@@ -211,12 +211,11 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            cursor: pointer !important;
-            z-index: 99999;
+            cursor: pointer;
+            z-index: 9999;
             font-weight: bold;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
             transition: all 0.2s ease;
-            pointer-events: auto !important;
         }
         
         .remove-btn:hover {
@@ -238,12 +237,11 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            cursor: pointer !important;
-            z-index: 99999;
+            cursor: pointer;
+            z-index: 9999;
             font-weight: bold;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
             transition: all 0.2s ease;
-            pointer-events: auto !important;
         }
         
         .edit-btn:hover {
@@ -268,7 +266,7 @@
         
         .control-group {
             background: rgba(0, 0, 0, 0.2);
-	padding: 15px;
+            padding: 15px;
             border-radius: 10px;
         }
         
@@ -646,6 +644,7 @@
             box-shadow: 0 0 10px rgba(76, 201, 240, 0.8);
         }
         
+        /* 裁剪编辑器模态框 */
         .modal {
             display: none;
             position: fixed;
@@ -741,6 +740,7 @@
             text-align: center;
         }
         
+        /* 裁剪框样式 */
         .crop-box {
             position: absolute;
             border: 2px solid #4A90E2;
@@ -776,8 +776,8 @@
 <body>
     <div class="container">
         <header>
-            <h1><i class="fas fa-image"></i> 图片拼接工具<span class="version-badge">v2.0-豆包 最终完整版</span></h1>
-            <p class="subtitle">在本地浏览器中实现基本图像拼接功能：支持多图批量处理、多种拼接模式、自定义尺寸和背景处理 | 拖拽导入+拖拽排序双正常</p>
+            <h1><i class="fas fa-image"></i> 图片拼接工具<span class="version-badge">v2.0-DS</span></h1>
+            <p class="subtitle">在本地浏览器中实现基本图像拼接功能：支持多图批量处理、多种拼接模式、自定义尺寸和背景处理</p>
         </header>
         
         <div class="main-content">
@@ -930,7 +930,7 @@
         </div>
         
         <div class="bottom-notice">
-            <i class="fas fa-info-circle"></i> 功能全部正常：拖拽导入图片 ✔ | 拖拽排序 ✔ | 编辑裁剪 ✔ | 删除保留排序 ✔ | 所有拼接功能 ✔
+            <i class="fas fa-info-circle"></i> 新增功能：支持单张图片移除、手动拖拽排序和临时裁剪编辑！现在您可以直接点击缩略图上的蓝色编辑按钮对单张图片进行临时裁剪，编辑后的图片仅用于拼接，不会影响您的原始图片。
         </div>
         
         <div class="info-section">
@@ -969,12 +969,12 @@
                 <div class="feature-card">
                     <i class="fas fa-times-circle"></i>
                     <h3>图片移除</h3>
-                    <p>可单独移除不需要的图片，移除后保留手动排序结果</p>
+                    <p>可单独移除不需要的图片，提高编辑灵活性</p>
                 </div>
                 <div class="feature-card">
                     <i class="fas fa-arrows-alt"></i>
                     <h3>拖拽排序</h3>
-                    <p>支持手动拖拽重新排列图片顺序，排序永久保存，删除图片不丢失</p>
+                    <p>支持手动拖拽重新排列图片顺序，排序后编辑功能正常可用</p>
                 </div>
                 <div class="feature-card">
                     <i class="fas fa-crop-alt"></i>
@@ -985,10 +985,11 @@
         </div>
         
         <footer>
-            <p>图片拼接工具 v2.0-豆包 最终完整版 | 基于HTML5 Canvas技术 | 本地运行无需服务器 | © 2025</p>
+            <p>图片拼接工具 v2.0-DS | 基于HTML5 Canvas技术 | 本地运行无需服务器 | © 2025</p>
         </footer>
     </div>
 
+    <!-- 裁剪编辑器模态框 -->
     <div id="cropModal" class="modal">
         <div class="modal-content">
             <span class="close" id="cropCloseBtn">&times;</span>
@@ -1028,6 +1029,7 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // DOM元素
             const fileInput = document.getElementById('fileInput');
             const dropZone = document.getElementById('dropZone');
             const thumbnailContainer = document.getElementById('thumbnailContainer');
@@ -1057,6 +1059,7 @@
             const zoomOutBtn = document.getElementById('zoomOutBtn');
             const resetZoomBtn = document.getElementById('resetZoomBtn');
             
+            // 裁剪编辑器相关元素
             const cropModal = document.getElementById('cropModal');
             const cropCanvas = document.getElementById('cropCanvas');
             const cropCtx = cropCanvas.getContext('2d');
@@ -1070,19 +1073,18 @@
             const confirmCropBtn = document.getElementById('confirmCropBtn');
             const presetVRCBtn = document.getElementById('presetVRCBtn');
             
-            let images = [];
-            let sortedImages = [];
-            let customSortedIds = [];
+            // 全局变量
+            let images = []; // 原始图片数组
+            let sortedImages = []; // 排序/拖拽后的图片数组
             let lockAspectRatio = false;
             let processedCanvas = null;
-            let currentSortMethod = 'natural';
             let zoomLevel = 1;
             let canvasWidth = 0;
             let canvasHeight = 0;
             let draggedItem = null;
             let dragOverItem = null;
-            let currentEditIndex = -1;
-            let originalImages = [];
+            let currentEditTempId = null; // 使用tempId而非索引
+            let originalImages = []; // 存储原始图片数据
             let cropData = {
                 startX: 0,
                 startY: 0,
@@ -1095,41 +1097,66 @@
                 originalHeight: 0
             };
 
+            // 初始化
             function init() {
                 dropZone.addEventListener('click', () => fileInput.click());
                 fileInput.addEventListener('change', handleFileSelect);
-                // ========== ✅ 核心修复：完整绑定拖拽上传的4个事件，彻底解决拖拽导入失效 ==========
-                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-                    dropZone.addEventListener(eventName, preventDefaults, false);
-                });
-                dropZone.addEventListener('dragenter', highlight, false);
-                dropZone.addEventListener('dragover', highlight, false);
-                dropZone.addEventListener('dragleave', unhighlight, false);
-                dropZone.addEventListener('drop', handleDrop, false);
-                // ==============================================================
+                setupDragAndDrop();
                 setupEventListeners();
                 updateImageCount();
+                
                 lockBtn.innerHTML = '<i class="fas fa-lock-open"></i>';
                 lockAspectRatio = false;
+                
+                // 设置拖拽排序功能
                 setupThumbnailDragAndDrop();
             }
             
-            // ========== ✅ 核心修复：通用事件阻断函数，所有拖拽事件必须调用 ==========
-            function preventDefaults(e) {
-                e.preventDefault();
-                e.stopPropagation();
-            }
-            function highlight(e) { dropZone.classList.add('drag-over'); }
-            function unhighlight(e) { dropZone.classList.remove('drag-over'); }
-            // =====================================================================
-            
+            // 设置拖拽排序功能【核心修复：修复事件绑定】
             function setupThumbnailDragAndDrop() {
+                // 使用事件委托，避免重复绑定
                 thumbnailContainer.addEventListener('dragstart', handleDragStart);
                 thumbnailContainer.addEventListener('dragend', handleDragEnd);
-                thumbnailContainer.addEventListener('dragover', (e) => e.preventDefault());
+                thumbnailContainer.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    const item = e.target.closest('.thumbnail-item');
+                    if (item && item !== draggedItem) {
+                        e.dataTransfer.dropEffect = 'move';
+                    }
+                });
                 thumbnailContainer.addEventListener('dragenter', handleDragEnter);
                 thumbnailContainer.addEventListener('dragleave', handleDragLeave);
                 thumbnailContainer.addEventListener('drop', handleDropEvent);
+                
+                // 为编辑和删除按钮使用事件委托
+                thumbnailContainer.addEventListener('click', handleThumbnailButtonClick);
+            }
+            
+            // 处理缩略图按钮点击（编辑和删除）
+            function handleThumbnailButtonClick(e) {
+                const target = e.target;
+                
+                // 处理编辑按钮
+                if (target.classList.contains('edit-btn') || target.closest('.edit-btn')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const thumbnailItem = target.closest('.thumbnail-item');
+                    if (thumbnailItem) {
+                        const tempId = thumbnailItem.dataset.tempid;
+                        openCropEditorByTempId(tempId);
+                    }
+                }
+                
+                // 处理删除按钮
+                if (target.classList.contains('remove-btn') || target.closest('.remove-btn')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const thumbnailItem = target.closest('.thumbnail-item');
+                    if (thumbnailItem) {
+                        const tempId = thumbnailItem.dataset.tempid;
+                        removeImageByTempId(tempId);
+                    }
+                }
             }
             
             function handleDragStart(e) {
@@ -1165,40 +1192,77 @@
                 if (item) item.classList.remove('drop-highlight');
             }
             
+            // 【核心修复】拖拽排序后保持顺序
             function handleDropEvent(e) {
                 e.preventDefault();
                 if (!draggedItem || !dragOverItem || draggedItem === dragOverItem) return;
+
+                // 1. DOM节点移动
                 const parent = thumbnailContainer;
                 const dragRect = draggedItem.getBoundingClientRect();
                 const dropRect = dragOverItem.getBoundingClientRect();
+                
+                // 根据位置决定插入位置
                 if (dragRect.top < dropRect.top) {
                     parent.insertBefore(draggedItem, dragOverItem.nextSibling);
                 } else {
                     parent.insertBefore(draggedItem, dragOverItem);
                 }
-                saveCustomSortFromDOM();
-                syncSortedImagesByCustomIds();
-                showNotification('图片顺序已更新 ✔，删除图片将保留此顺序');
+
+                // 2. 同步数组顺序
+                updateSortedImagesFromDOM();
+                
+                // 3. 视觉反馈
+                dragOverItem.classList.remove('drop-highlight');
+                showNotification('图片顺序已更新 ✔');
             }
             
-            function saveCustomSortFromDOM() {
-                customSortedIds = [];
+            // 【核心修复】从DOM更新排序数组
+            function updateSortedImagesFromDOM() {
                 const domItems = document.querySelectorAll('.thumbnail-item');
+                sortedImages = [];
+                
                 domItems.forEach(item => {
-                    customSortedIds.push(item.dataset.tempid);
+                    const tempId = item.dataset.tempid;
+                    // 从images数组中查找对应的图片
+                    const image = images.find(img => img.tempId === tempId);
+                    if (image) {
+                        sortedImages.push(image);
+                    }
                 });
             }
             
-            function syncSortedImagesByCustomIds() {
-                if(customSortedIds.length > 0 && customSortedIds.length === images.length) {
-                    sortedImages = customSortedIds.map(tempId => images.find(img => img.tempId === tempId)).filter(Boolean);
-                } else {
-                    applyCurrentSortMethod();
-                }
+            // 设置拖放功能
+            function setupDragAndDrop() {
+                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                    dropZone.addEventListener(eventName, preventDefaults, false);
+                });
+                
+                ['dragenter', 'dragover'].forEach(eventName => {
+                    dropZone.addEventListener(eventName, highlight, false);
+                });
+                
+                ['dragleave', 'drop'].forEach(eventName => {
+                    dropZone.addEventListener(eventName, unhighlight, false);
+                });
+                
+                dropZone.addEventListener('drop', handleDrop, false);
+            }
+            
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            
+            function highlight(e) {
+                dropZone.classList.add('drag-over');
+            }
+            
+            function unhighlight(e) {
+                dropZone.classList.remove('drag-over');
             }
             
             function handleDrop(e) {
-                unhighlight(e);
                 const dt = e.dataTransfer;
                 const files = dt.files;
                 handleFiles(files);
@@ -1209,13 +1273,14 @@
                 handleFiles(files);
             }
             
+            // 处理上传的文件
             function handleFiles(files) {
                 if (!files.length) return;
-                let validCount = 0;
+                
                 for (let i = 0; i < files.length; i++) {
                     const file = files[i];
                     if (!file.type.match('image.*')) continue;
-                    validCount++;
+                    
                     const reader = new FileReader();
                     reader.onload = function(e) {
                         const img = new Image();
@@ -1231,7 +1296,9 @@
                                 originalSrc: e.target.result,
                                 tempId: tempId
                             };
+                            
                             images.push(imageData);
+                            sortedImages.push(imageData);
                             originalImages.push({
                                 name: file.name,
                                 src: e.target.result,
@@ -1239,9 +1306,10 @@
                                 height: img.height,
                                 tempId: tempId
                             });
-                            syncSortedImagesByCustomIds();
+                            
                             updateThumbnails();
                             updateImageCount();
+                            
                             if (images.length > 0) {
                                 processBtn.disabled = false;
                                 emptyNotice.style.display = 'none';
@@ -1251,47 +1319,46 @@
                     };
                     reader.readAsDataURL(file);
                 }
-                showNotification(`成功添加 ${validCount} 张图片`);
+                
+                showNotification(`成功添加 ${files.length} 张图片`);
             }
             
+            // 更新缩略图显示
             function updateThumbnails() {
                 thumbnailContainer.innerHTML = '';
-                if (images.length === 0) {
+                
+                if (sortedImages.length === 0) {
                     thumbnailContainer.innerHTML = '<div class="empty-notice" id="emptyNotice"><p>暂无图片，请上传图片...</p></div>';
                     return;
                 }
-                syncSortedImagesByCustomIds();
+                
                 sortedImages.forEach((image, index) => {
                     const thumbnail = document.createElement('div');
                     thumbnail.className = 'thumbnail-item';
                     thumbnail.draggable = true;
                     thumbnail.dataset.tempid = image.tempId;
+                    thumbnail.dataset.index = index;
+                    
                     const img = document.createElement('img');
                     img.src = image.img.src;
                     img.alt = image.name;
+                    
                     const name = document.createElement('div');
                     name.className = 'thumbnail-name';
                     name.textContent = image.name;
+                    
+                    // 编辑按钮
                     const editBtn = document.createElement('button');
                     editBtn.className = 'edit-btn';
                     editBtn.innerHTML = 'E';
                     editBtn.title = '编辑裁剪这张图片';
-                    editBtn.onclick = (e) => {
-                        e.stopPropagation();
-                        e.preventDefault();
-                        openCropEditorByTempId(image.tempId);
-                        return false;
-                    };
+                    
+                    // 删除按钮
                     const removeBtn = document.createElement('button');
                     removeBtn.className = 'remove-btn';
                     removeBtn.innerHTML = '×';
                     removeBtn.title = '移除这张图片';
-                    removeBtn.onclick = (e) => {
-                        e.stopPropagation();
-                        e.preventDefault();
-                        removeImage(image);
-                        return false;
-                    };
+                    
                     thumbnail.appendChild(img);
                     thumbnail.appendChild(name);
                     thumbnail.appendChild(editBtn);
@@ -1300,38 +1367,55 @@
                 });
             }
             
-            function removeImage(imageToRemove) {
-                const tempId = imageToRemove.tempId;
-                const indexToRemove = images.findIndex(img => img.tempId === tempId);
-                if (indexToRemove !== -1) {
-                    images.splice(indexToRemove, 1);
-                    originalImages.splice(indexToRemove, 1);
+            // 通过tempId移除图片【核心修复：保持数组同步】
+            function removeImageByTempId(tempId) {
+                // 从images数组中移除
+                const imageIndex = images.findIndex(img => img.tempId === tempId);
+                if (imageIndex !== -1) {
+                    images.splice(imageIndex, 1);
                 }
-                customSortedIds = customSortedIds.filter(id => id !== tempId);
-                syncSortedImagesByCustomIds();
+                
+                // 从sortedImages数组中移除
+                const sortedIndex = sortedImages.findIndex(img => img.tempId === tempId);
+                if (sortedIndex !== -1) {
+                    sortedImages.splice(sortedIndex, 1);
+                }
+                
+                // 从originalImages数组中移除
+                const originalIndex = originalImages.findIndex(img => img.tempId === tempId);
+                if (originalIndex !== -1) {
+                    originalImages.splice(originalIndex, 1);
+                }
+                
                 updateThumbnails();
                 updateImageCount();
+                
                 if (images.length === 0) {
                     processBtn.disabled = true;
                     downloadBtn.disabled = true;
                     canvas.width = 0;
                     canvas.height = 0;
                     previewSize.textContent = '';
-                    customSortedIds = [];
                 }
-                showNotification('图片已移除 ✔，剩余图片顺序不变');
+                
+                showNotification('图片已移除');
             }
             
+            // 自然排序算法
             function naturalCompare(a, b, ascending = true) {
                 const regEx = /(\d+)/g;
                 const aParts = a.toLowerCase().split(regEx);
                 const bParts = b.toLowerCase().split(regEx);
+                
                 for (let i = 0; i < Math.min(aParts.length, bParts.length); i++) {
                     let aPart = aParts[i];
                     let bPart = bParts[i];
+                    
                     if (aPart === bPart) continue;
+                    
                     let aIsNum = !isNaN(aPart);
                     let bIsNum = !isNaN(bPart);
+                    
                     if (aIsNum && bIsNum) {
                         return ascending 
                             ? parseInt(aPart) - parseInt(bPart) 
@@ -1346,24 +1430,22 @@
                             : bPart.localeCompare(aPart);
                     }
                 }
+                
                 return ascending 
                     ? aParts.length - bParts.length 
                     : bParts.length - aParts.length;
             }
             
-            function applyCurrentSortMethod() {
-                if (currentSortMethod === 'natural') {
-                    sortedImages = [...images].sort((a, b) => naturalCompare(a.name, b.name, true));
-                } else if (currentSortMethod === 'asc') {
-                    sortedImages = [...images].sort((a, b) => naturalCompare(a.name, b.name, true));
-                } else if (currentSortMethod === 'desc') {
-                    sortedImages = [...images].sort((a, b) => naturalCompare(a.name, b.name, false));
-                }
-                customSortedIds = [];
+            // 按文件名排序
+            function sortImagesByName(ascending = true) {
+                sortedImages = [...images].sort((a, b) => naturalCompare(a.name, b.name, ascending));
+                updateThumbnails();
             }
             
+            // 更新图片计数
             function updateImageCount() {
                 imageCount.textContent = images.length;
+                
                 if (images.length > 0) {
                     const maxWidth = Math.max(...images.map(img => img.width));
                     const maxHeight = Math.max(...images.map(img => img.height));
@@ -1374,98 +1456,128 @@
                 }
             }
             
+            // 显示通知
             function showNotification(message, isWarning = false) {
                 notification.textContent = message;
                 notification.className = isWarning ? 'notification warning' : 'notification';
                 notification.classList.add('show');
+                
                 setTimeout(() => {
                     notification.classList.remove('show');
                     if (isWarning) notification.classList.remove('warning');
                 }, 3000);
             }
             
+            // 调整预览缩放
             function adjustPreviewZoom() {
                 if (!canvasWidth || !canvasHeight) return;
+                
                 const previewContainer = document.querySelector('.result-preview');
                 const containerWidth = previewContainer.clientWidth - 40;
                 const containerHeight = previewContainer.clientHeight - 40;
+                
                 const scaleX = containerWidth / canvasWidth;
                 const scaleY = containerHeight / canvasHeight;
                 const initialScale = Math.min(scaleX, scaleY, 1);
+                
                 canvas.style.width = (canvasWidth * initialScale * zoomLevel) + 'px';
                 canvas.style.height = (canvasHeight * initialScale * zoomLevel) + 'px';
             }
             
+            // 根据图片唯一tempId打开裁剪编辑器
             function openCropEditorByTempId(tempId) {
                 const targetIndex = sortedImages.findIndex(img => img.tempId === tempId);
-                if(targetIndex === -1) return;
-                openCropEditor(targetIndex);
+                if (targetIndex === -1) {
+                    // 如果在sortedImages中找不到，尝试在images中查找
+                    const imageInOriginal = images.find(img => img.tempId === tempId);
+                    if (!imageInOriginal) {
+                        showNotification('找不到指定的图片', true);
+                        return;
+                    }
+                    openCropEditor(imageInOriginal);
+                    return;
+                }
+                openCropEditor(sortedImages[targetIndex], tempId);
             }
 
-            function openCropEditor(index) {
-                if(index <0 || index >= sortedImages.length) return;
-                currentEditIndex = index;
+            // 裁剪编辑功能
+            function openCropEditor(image, tempId) {
+                currentEditTempId = tempId;
+                
                 const originalImg = new Image();
                 originalImg.onload = function() {
                     const maxWidth = 800;
                     const maxHeight = 600;
                     let displayWidth = originalImg.width;
                     let displayHeight = originalImg.height;
+                    
                     if (displayWidth > maxWidth) {
                         displayHeight = (maxWidth / displayWidth) * displayHeight;
                         displayWidth = maxWidth;
                     }
+                    
                     if (displayHeight > maxHeight) {
                         displayWidth = (maxHeight / displayHeight) * displayWidth;
                         displayHeight = maxHeight;
                     }
+                    
                     cropCanvas.width = displayWidth;
                     cropCanvas.height = displayHeight;
                     cropCtx.drawImage(originalImg, 0, 0, displayWidth, displayHeight);
+                    
                     cropData.originalWidth = originalImg.width;
                     cropData.originalHeight = originalImg.height;
                     cropData.startX = 0;
                     cropData.startY = 0;
                     cropData.width = displayWidth;
                     cropData.height = displayHeight;
+                    
                     updateCropBox();
                     cropBox.style.display = 'block';
                     updateOverlay();
                     addCropEventListeners();
                     cropModal.style.display = 'block';
                 };
-                originalImg.src = sortedImages[currentEditIndex].originalSrc;
+                originalImg.src = image.originalSrc;
             }
 
+            // 更新裁剪框位置和大小
             function updateCropBox() {
                 const scaleX = cropCanvas.width / cropData.originalWidth;
                 const scaleY = cropCanvas.height / cropData.originalHeight;
+                
                 cropBox.style.left = (cropData.startX * scaleX) + 'px';
                 cropBox.style.top = (cropData.startY * scaleY) + 'px';
                 cropBox.style.width = (cropData.width * scaleX) + 'px';
                 cropBox.style.height = (cropData.height * scaleY) + 'px';
+                
                 document.getElementById('cropInfo').textContent = 
                     `X: ${Math.round(cropData.startX)}, Y: ${Math.round(cropData.startY)}, W: ${Math.round(cropData.width)}, H: ${Math.round(cropData.height)}`;
             }
 
+            // 更新覆盖层
             function updateOverlay() {
                 const scaleX = cropCanvas.width / cropData.originalWidth;
                 const scaleY = cropCanvas.height / cropData.originalHeight;
+                
                 overlayTop.style.top = '0px';
                 overlayTop.style.left = '0px';
                 overlayTop.style.width = cropCanvas.width + 'px';
                 overlayTop.style.height = (cropData.startY * scaleY) + 'px';
                 overlayTop.style.display = 'block';
+                
                 overlayRight.style.top = (cropData.startY * scaleY) + 'px';
                 overlayRight.style.left = (cropData.startX * scaleX + cropData.width * scaleX) + 'px';
                 overlayRight.style.width = (cropCanvas.width - (cropData.startX + cropData.width) * scaleX) + 'px';
                 overlayRight.style.height = (cropData.height * scaleY) + 'px';
                 overlayRight.style.display = 'block';
+                
                 overlayBottom.style.top = (cropData.startY * scaleY + cropData.height * scaleY) + 'px';
                 overlayBottom.style.left = '0px';
                 overlayBottom.style.width = cropCanvas.width + 'px';
                 overlayBottom.style.height = (cropCanvas.height - (cropData.startY + cropData.height) * scaleY) + 'px';
                 overlayBottom.style.display = 'block';
+                
                 overlayLeft.style.top = (cropData.startY * scaleY) + 'px';
                 overlayLeft.style.left = '0px';
                 overlayLeft.style.width = (cropData.startX * scaleX) + 'px';
@@ -1473,10 +1585,12 @@
                 overlayLeft.style.display = 'block';
             }
 
+            // 添加裁剪事件监听器
             function addCropEventListeners() {
                 cropBox.addEventListener('mousedown', handleCropBoxMouseDown);
                 document.addEventListener('mousemove', handleMouseMove);
                 document.addEventListener('mouseup', handleMouseUp);
+                
                 const handles = document.querySelectorAll('.crop-box-handle');
                 handles.forEach(handle => {
                     handle.addEventListener('mousedown', (e) => {
@@ -1487,6 +1601,7 @@
                 });
             }
 
+            // 处理裁剪框鼠标按下事件
             function handleCropBoxMouseDown(e) {
                 e.stopPropagation();
                 cropData.isDragging = true;
@@ -1495,30 +1610,40 @@
                 cropData.offsetY = e.clientY - rect.top;
             }
 
+            // 处理鼠标移动事件
             function handleMouseMove(e) {
                 if (!cropModal.style.display || cropModal.style.display === 'none') return;
+                
                 if (cropData.isDragging) {
                     const containerRect = cropCanvas.getBoundingClientRect();
                     const x = e.clientX - containerRect.left - cropData.offsetX;
                     const y = e.clientY - containerRect.top - cropData.offsetY;
+                    
                     const scaleX = cropCanvas.width / cropData.originalWidth;
                     const scaleY = cropCanvas.height / cropData.originalHeight;
+                    
                     const origX = x / scaleX;
                     const origY = y / scaleY;
+                    
                     const maxX = cropData.originalWidth - cropData.width;
                     const maxY = cropData.originalHeight - cropData.height;
+                    
                     cropData.startX = Math.max(0, Math.min(origX, maxX));
                     cropData.startY = Math.max(0, Math.min(origY, maxY));
+                    
                     updateCropBox();
                     updateOverlay();
                 } else if (cropData.isResizing) {
                     const containerRect = cropCanvas.getBoundingClientRect();
                     const x = e.clientX - containerRect.left;
                     const y = e.clientY - containerRect.top;
+                    
                     const scaleX = cropCanvas.width / cropData.originalWidth;
                     const scaleY = cropCanvas.height / cropData.originalHeight;
+                    
                     const origX = x / scaleX;
                     const origY = y / scaleY;
+                    
                     switch (cropData.resizeHandle) {
                         case 'crop-box-handle-nw':
                             const newWidthNW = cropData.width + (cropData.startX - origX);
@@ -1579,13 +1704,16 @@
                             }
                             break;
                     }
+                    
                     if (cropData.startX + cropData.width > cropData.originalWidth) cropData.width = cropData.originalWidth - cropData.startX;
                     if (cropData.startY + cropData.height > cropData.originalHeight) cropData.height = cropData.originalHeight - cropData.startY;
+                    
                     updateCropBox();
                     updateOverlay();
                 }
             }
 
+            // 处理鼠标抬起事件
             function handleMouseUp() {
                 cropData.isDragging = false;
                 cropData.isResizing = false;
@@ -1597,10 +1725,12 @@
                     showNotification('请选择有效的裁剪区域！', true);
                     return;
                 }
+                
                 const cropResultCanvas = document.createElement('canvas');
                 const cropResultCtx = cropResultCanvas.getContext('2d');
                 cropResultCanvas.width = cropData.width;
                 cropResultCanvas.height = cropData.height;
+                
                 const originalImg = new Image();
                 originalImg.onload = function() {
                     cropResultCtx.drawImage(
@@ -1608,25 +1738,52 @@
                         cropData.startX, cropData.startY, cropData.width, cropData.height,
                         0, 0, cropData.width, cropData.height
                     );
+                    
                     const croppedData = cropResultCanvas.toDataURL();
                     const croppedImg = new Image();
                     croppedImg.onload = function() {
-                        sortedImages[currentEditIndex].img = croppedImg;
-                        sortedImages[currentEditIndex].width = cropData.width;
-                        sortedImages[currentEditIndex].height = cropData.height;
-                        const originalIndex = images.findIndex(img => img.tempId === sortedImages[currentEditIndex].tempId);
-                        if (originalIndex !== -1) {
-                            images[originalIndex].img = croppedImg;
-                            images[originalIndex].width = cropData.width;
-                            images[originalIndex].height = cropData.height;
-                        }
+                        // 更新所有数组中的图片数据
+                        updateImageInAllArrays(currentEditTempId, croppedImg, cropData.width, cropData.height);
+                        
                         updateThumbnails();
                         closeCropModal();
                         showNotification('裁剪完成，裁剪结果将用于拼接');
                     };
                     croppedImg.src = croppedData;
                 };
-                originalImg.src = sortedImages[currentEditIndex].originalSrc;
+                
+                // 查找原始图片
+                const originalImage = sortedImages.find(img => img.tempId === currentEditTempId) || 
+                                    images.find(img => img.tempId === currentEditTempId);
+                if (originalImage) {
+                    originalImg.src = originalImage.originalSrc;
+                }
+            }
+            
+            // 更新所有数组中的图片数据
+            function updateImageInAllArrays(tempId, newImg, newWidth, newHeight) {
+                // 更新sortedImages
+                const sortedIndex = sortedImages.findIndex(img => img.tempId === tempId);
+                if (sortedIndex !== -1) {
+                    sortedImages[sortedIndex].img = newImg;
+                    sortedImages[sortedIndex].width = newWidth;
+                    sortedImages[sortedIndex].height = newHeight;
+                }
+                
+                // 更新images
+                const imagesIndex = images.findIndex(img => img.tempId === tempId);
+                if (imagesIndex !== -1) {
+                    images[imagesIndex].img = newImg;
+                    images[imagesIndex].width = newWidth;
+                    images[imagesIndex].height = newHeight;
+                }
+                
+                // 更新originalImages
+                const originalIndex = originalImages.findIndex(img => img.tempId === tempId);
+                if (originalIndex !== -1) {
+                    originalImages[originalIndex].width = newWidth;
+                    originalImages[originalIndex].height = newHeight;
+                }
             }
 
             function closeCropModal() {
@@ -1634,9 +1791,12 @@
                 cropData.isDragging = false;
                 cropData.isResizing = false;
                 cropData.resizeHandle = null;
+                currentEditTempId = null;
+                
                 cropBox.removeEventListener('mousedown', handleCropBoxMouseDown);
                 document.removeEventListener('mousemove', handleMouseMove);
                 document.removeEventListener('mouseup', handleMouseUp);
+                
                 cropBox.style.display = 'none';
                 overlayTop.style.display = 'none';
                 overlayRight.style.display = 'none';
@@ -1644,30 +1804,36 @@
                 overlayLeft.style.display = 'none';
             }
 
+            // VRC预设功能
             function applyVRCPreset() {
                 const ratio = 16 / 9;
                 let presetWidth = Math.min(cropData.originalWidth, 1920);
                 let presetHeight = Math.min(cropData.originalHeight, presetWidth / ratio);
                 const presetX = (cropData.originalWidth - presetWidth) / 2;
                 const presetY = (cropData.originalHeight - presetHeight) / 2;
+
                 cropData.startX = presetX;
                 cropData.startY = presetY;
                 cropData.width = presetWidth;
                 cropData.height = presetHeight;
+
                 updateCropBox();
                 updateOverlay();
                 showNotification('已应用VRC 16:9 最优预设');
             }
 
+            // 点击模态框外部关闭
             window.onclick = function(event) {
                 if (event.target === cropModal) closeCropModal();
             }
 
+            // 处理图片拼接
             function processImages() {
                 if (images.length === 0) {
                     showNotification('请先上传图片', true);
                     return;
                 }
+                
                 try {
                     const layout = layoutMode.value;
                     const spacing = parseInt(document.getElementById('spacing').value) || 0;
@@ -1675,21 +1841,25 @@
                     const fillTransparent = document.getElementById('fillTransparent').checked;
                     const useUniformSize = uniformSize.checked;
                     const sizeMode = document.getElementById('sizeMode').value;
+                    
                     let uniformWidth = 0;
                     let uniformHeight = 0;
                     if (useUniformSize) {
                         uniformWidth = parseInt(document.getElementById('imgWidth').value) || 128;
                         uniformHeight = parseInt(document.getElementById('imgHeight').value) || 128;
                     }
+                    
                     canvasWidth = 0;
                     canvasHeight = 0;
                     let rows = 1;
                     let cols = 1;
+                    
                     if (layout === 'grid') {
                         rows = parseInt(document.getElementById('rowsPerCol').value) || 3;
                         cols = parseInt(document.getElementById('colsPerRow').value) || 3;
                         const totalImages = sortedImages.length;
                         rows = Math.ceil(totalImages / cols);
+                        
                         canvasWidth = cols * (useUniformSize ? uniformWidth : Math.max(...sortedImages.map(img => img.width))) + (cols - 1) * spacing;
                         canvasHeight = rows * (useUniformSize ? uniformHeight : Math.max(...sortedImages.map(img => img.height))) + (rows - 1) * spacing;
                     } else if (layout === 'horizontal') {
@@ -1699,28 +1869,36 @@
                         canvasHeight = sortedImages.reduce((sum, img) => sum + (useUniformSize ? uniformHeight : img.height), 0) + spacing * (sortedImages.length - 1);
                         canvasWidth = Math.max(...sortedImages.map(img => useUniformSize ? uniformWidth : img.width));
                     }
+                    
                     canvas.width = canvasWidth;
                     canvas.height = canvasHeight;
                     ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    
                     if (outputFormat.value === 'jpeg' || (outputFormat.value === 'png' && fillTransparent)) {
                         ctx.fillStyle = bgColor;
                         ctx.fillRect(0, 0, canvas.width, canvas.height);
                     }
+                    
                     let x = 0, y = 0;
+                    
                     for (let i = 0; i < sortedImages.length; i++) {
                         const img = sortedImages[i].img;
                         let imgWidth = img.width;
                         let imgHeight = img.height;
+                        
                         if (useUniformSize) {
                             imgWidth = uniformWidth;
                             imgHeight = uniformHeight;
                         }
+                        
                         let drawX = x;
                         let drawY = y;
+                        
                         if (!useUniformSize) {
                             if (layout === 'horizontal') drawY = (canvasHeight - imgHeight) / 2;
                             else if (layout === 'vertical') drawX = (canvasWidth - imgWidth) / 2;
                         }
+                        
                         if (sizeMode === 'stretch') {
                             if (useUniformSize) ctx.drawImage(img, drawX, drawY, imgWidth, imgHeight);
                             else ctx.drawImage(img, drawX, drawY);
@@ -1757,6 +1935,7 @@
                                 ctx.drawImage(img, drawX, drawY);
                             }
                         }
+                        
                         if (layout === 'grid') {
                             if ((i + 1) % cols === 0) {
                                 x = 0;
@@ -1770,10 +1949,12 @@
                             y += imgHeight + spacing;
                         }
                     }
+                    
                     processedCanvas = canvas;
                     downloadBtn.disabled = false;
                     previewSize.textContent = `总尺寸: ${canvasWidth} × ${canvasHeight} 像素`;
                     previewSize.style.display = 'block';
+                    
                     zoomLevel = 1;
                     adjustPreviewZoom();
                     showNotification('图片拼接完成！');
@@ -1783,20 +1964,24 @@
                 }
             }
             
+            // 下载图片
             function downloadImage() {
                 if (!processedCanvas) {
                     showNotification('请先处理图片', true);
                     return;
                 }
+                
                 try {
                     const format = outputFormat.value;
                     const filename = `拼接结果.${format}`;
                     const quality = format === 'jpeg' ? parseInt(document.getElementById('quality').value) / 100 : 1;
+                    
                     const dataURL = processedCanvas.toDataURL(`image/${format}`, quality);
                     const link = document.createElement('a');
                     link.download = filename;
                     link.href = dataURL;
                     link.click();
+                    
                     showNotification('图片下载成功！');
                 } catch (error) {
                     console.error('下载图片时出错:', error);
@@ -1804,28 +1989,30 @@
                 }
             }
             
+            // 设置事件监听器
             function setupEventListeners() {
+                // 裁剪编辑器事件监听器
                 cropCloseBtn.addEventListener('click', closeCropModal);
                 cancelCropBtn.addEventListener('click', closeCropModal);
                 confirmCropBtn.addEventListener('click', confirmCrop);
                 presetVRCBtn.addEventListener('click', applyVRCPreset);
+
+                // 排序按钮
                 sortAscBtn.addEventListener('click', () => {
-                    currentSortMethod = 'asc';
-                    applyCurrentSortMethod();
-                    updateThumbnails();
-                    showNotification('已按文件名正序排序（自然排序），自定义排序已重置');
+                    sortImagesByName(true);
+                    showNotification('已按文件名正序排序（自然排序）');
                 });
+                
                 sortDescBtn.addEventListener('click', () => {
-                    currentSortMethod = 'desc';
-                    applyCurrentSortMethod();
-                    updateThumbnails();
-                    showNotification('已按文件名倒序排序（自然排序），自定义排序已重置');
+                    sortImagesByName(false);
+                    showNotification('已按文件名倒序排序（自然排序）');
                 });
+                
+                // 清空按钮
                 clearBtn.addEventListener('click', () => {
                     images = [];
                     sortedImages = [];
                     originalImages = [];
-                    customSortedIds = [];
                     updateThumbnails();
                     updateImageCount();
                     processBtn.disabled = true;
@@ -1833,14 +2020,20 @@
                     canvas.width = 0;
                     canvas.height = 0;
                     previewSize.textContent = '';
-                    showNotification('已清空所有图片和排序记录');
+                    showNotification('已清空所有图片');
                 });
+                
+                // 布局模式切换
                 layoutMode.addEventListener('change', () => {
                     gridControls.style.display = layoutMode.value === 'grid' ? 'block' : 'none';
                 });
+                
+                // 统一尺寸切换
                 uniformSize.addEventListener('change', () => {
                     sizeControls.style.display = uniformSize.checked ? 'block' : 'none';
                 });
+                
+                // 输出格式变化
                 outputFormat.addEventListener('change', () => {
                     if (outputFormat.value === 'jpeg') {
                         jpegWarning.style.display = 'block';
@@ -1851,8 +2044,14 @@
                         fillTransparent.disabled = false;
                     }
                 });
+                
+                // 处理按钮
                 processBtn.addEventListener('click', processImages);
+                
+                // 下载按钮
                 downloadBtn.addEventListener('click', downloadImage);
+                
+                // 重置按钮
                 resetBtn.addEventListener('click', () => {
                     layoutMode.value = 'horizontal';
                     spacing.value = '0';
@@ -1864,40 +2063,56 @@
                     quality.value = '90';
                     qualityValue.textContent = '90%';
                     fillTransparent.disabled = false;
+                    
                     gridControls.style.display = 'none';
                     sizeControls.style.display = 'none';
                     jpegWarning.style.display = 'none';
                     previewSize.textContent = '';
+                    
                     canvas.width = 0;
                     canvas.height = 0;
                     showNotification('设置已重置');
                 });
+                
+                // 锁定按钮
                 lockBtn.addEventListener('click', () => {
                     lockAspectRatio = !lockAspectRatio;
                     lockBtn.innerHTML = lockAspectRatio ? '<i class="fas fa-lock"></i>' : '<i class="fas fa-lock-open"></i>';
                     if (lockAspectRatio) imgHeight.value = imgWidth.value;
                 });
+                
+                // 宽度变化同步高度
                 imgWidth.addEventListener('input', () => {
                     if (lockAspectRatio) imgHeight.value = imgWidth.value;
                 });
+                
+                // 高度变化同步宽度
                 imgHeight.addEventListener('input', () => {
                     if (lockAspectRatio) imgWidth.value = imgHeight.value;
                 });
+                
+                // 缩放按钮
                 zoomInBtn.addEventListener('click', () => {
                     zoomLevel *= 1.2;
                     adjustPreviewZoom();
                 });
+                
                 zoomOutBtn.addEventListener('click', () => {
                     zoomLevel /= 1.2;
                     adjustPreviewZoom();
                 });
+                
                 resetZoomBtn.addEventListener('click', () => {
                     zoomLevel = 1;
                     adjustPreviewZoom();
                 });
+                
+                // 窗口大小变化时调整预览
                 window.addEventListener('resize', () => {
                     if (processedCanvas) adjustPreviewZoom();
                 });
+                
+                // 质量滑块事件
                 qualitySlider.addEventListener('input', () => {
                     qualityValue.textContent = qualitySlider.value + '%';
                 });
