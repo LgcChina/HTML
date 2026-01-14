@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>图片拼接工具1.1 - 修复拖动功能</title>
+    <title>图片拼接工具1.2 - 增强版</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
@@ -171,6 +171,7 @@
             overflow: hidden;
             box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
             aspect-ratio: 1;
+            cursor: move;
         }
         
         .thumbnail-item img {
@@ -191,6 +192,24 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+        }
+        
+        .remove-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: rgba(231, 29, 54, 0.8);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 0.7rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 10;
         }
         
         .sort-controls {
@@ -573,12 +592,21 @@
                 height: 300px;
             }
         }
+        
+        .draggable-active {
+            opacity: 0.5;
+            border: 2px dashed var(--accent);
+        }
+        
+        .drop-highlight {
+            background: rgba(76, 201, 240, 0.4);
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1><i class="fas fa-image"></i> 图片拼接工具<span class="version-badge">v1.1</span></h1>
+            <h1><i class="fas fa-image"></i> 图片拼接工具<span class="version-badge">v1.2</span></h1>
             <p class="subtitle">在本地浏览器中实现基本图像拼接功能：支持多图批量处理、多种拼接模式、自定义尺寸和背景处理</p>
         </header>
         
@@ -732,7 +760,7 @@
         </div>
         
         <div class="bottom-notice">
-            <i class="fas fa-info-circle"></i> 已修复文件名排序问题！现在使用自然排序算法，数字会按数值大小正确排序（例如：1, 2, 3, ..., 10, 11）。
+            <i class="fas fa-info-circle"></i> 新增功能：支持单张图片移除和手动拖拽排序！现在您可以直接点击缩略图上的红色叉号移除图片，也可以通过拖拽来重新排列图片顺序。
         </div>
         
         <div class="info-section">
@@ -768,11 +796,21 @@
                     <h3>智能排序</h3>
                     <p>使用自然排序算法，数字按数值大小排序（1, 2, 3, ..., 10, 11）</p>
                 </div>
+                <div class="feature-card">
+                    <i class="fas fa-times-circle"></i>
+                    <h3>图片移除</h3>
+                    <p>可单独移除不需要的图片，提高编辑灵活性</p>
+                </div>
+                <div class="feature-card">
+                    <i class="fas fa-arrows-alt"></i>
+                    <h3>拖拽排序</h3>
+                    <p>支持手动拖拽重新排列图片顺序</p>
+                </div>
             </div>
         </div>
         
         <footer>
-            <p>图片拼接工具 v1.1 | 基于HTML5 Canvas技术 | 本地运行无需服务器 | © 2025</p>
+            <p>图片拼接工具 v1.2 | 基于HTML5 Canvas技术 | 本地运行无需服务器 | © 2025</p>
         </footer>
     </div>
 
@@ -819,6 +857,8 @@
             let zoomLevel = 1; // 预览缩放级别
             let canvasWidth = 0; // 实际画布宽度
             let canvasHeight = 0; // 实际画布高度
+            let draggedItem = null;
+            let dragOverItem = null;
             
             // 初始化
             function init() {
@@ -832,6 +872,117 @@
                 // 初始化锁定按钮状态为解锁
                 lockBtn.innerHTML = '<i class="fas fa-lock-open"></i>';
                 lockAspectRatio = false;
+                
+                // 添加拖拽事件监听器
+                setupThumbnailDragAndDrop();
+            }
+            
+            // 设置缩略图拖拽功能
+            function setupThumbnailDragAndDrop() {
+                thumbnailContainer.addEventListener('dragstart', handleDragStart);
+                thumbnailContainer.addEventListener('dragend', handleDragEnd);
+                thumbnailContainer.addEventListener('dragover', handleDragOver);
+                thumbnailContainer.addEventListener('dragenter', handleDragEnter);
+                thumbnailContainer.addEventListener('dragleave', handleDragLeave);
+                thumbnailContainer.addEventListener('drop', handleDropEvent);
+            }
+            
+            function handleDragStart(e) {
+                draggedItem = e.target.closest('.thumbnail-item');
+                if (!draggedItem) return;
+                
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/html', draggedItem.innerHTML);
+                
+                // 添加拖拽视觉反馈
+                setTimeout(() => {
+                    draggedItem.classList.add('draggable-active');
+                }, 0);
+            }
+            
+            function handleDragEnd(e) {
+                if (draggedItem) {
+                    draggedItem.classList.remove('draggable-active');
+                }
+                
+                // 重置所有项目类
+                const items = document.querySelectorAll('.thumbnail-item');
+                items.forEach(item => {
+                    item.classList.remove('drop-highlight');
+                });
+                
+                draggedItem = null;
+                dragOverItem = null;
+                
+                // 重新排序图片数组
+                updateSortedImagesFromDOM();
+            }
+            
+            function handleDragOver(e) {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+            }
+            
+            function handleDragEnter(e) {
+                e.preventDefault();
+                const item = e.target.closest('.thumbnail-item');
+                if (item && item !== draggedItem) {
+                    item.classList.add('drop-highlight');
+                    dragOverItem = item;
+                }
+            }
+            
+            function handleDragLeave(e) {
+                const item = e.target.closest('.thumbnail-item');
+                if (item) {
+                    item.classList.remove('drop-highlight');
+                }
+            }
+            
+            function handleDropEvent(e) {
+                e.preventDefault();
+                
+                if (dragOverItem && draggedItem && dragOverItem !== draggedItem) {
+                    // 获取当前缩略图项
+                    const allItems = Array.from(thumbnailContainer.querySelectorAll('.thumbnail-item'));
+                    const draggedIndex = allItems.indexOf(draggedItem);
+                    const dropIndex = allItems.indexOf(dragOverItem);
+                    
+                    // 在DOM中移动项目
+                    if (draggedIndex < dropIndex) {
+                        thumbnailContainer.insertBefore(draggedItem, dragOverItem.nextSibling);
+                    } else {
+                        thumbnailContainer.insertBefore(draggedItem, dragOverItem);
+                    }
+                    
+                    // 更新图片顺序
+                    updateSortedImagesFromDOM();
+                    showNotification('图片顺序已更新');
+                }
+                
+                // 移除高亮
+                if (dragOverItem) {
+                    dragOverItem.classList.remove('drop-highlight');
+                }
+            }
+            
+            // 从DOM更新排序图片数组
+            function updateSortedImagesFromDOM() {
+                const allItems = thumbnailContainer.querySelectorAll('.thumbnail-item');
+                const newSortedImages = [];
+                
+                allItems.forEach(item => {
+                    const imgSrc = item.querySelector('img').src;
+                    const imgName = item.querySelector('.thumbnail-name').textContent;
+                    
+                    // 查找对应的图片对象
+                    const foundImg = images.find(img => img.img.src === imgSrc && img.name === imgName);
+                    if (foundImg) {
+                        newSortedImages.push(foundImg);
+                    }
+                });
+                
+                sortedImages = newSortedImages;
             }
             
             // 设置拖放功能
@@ -926,6 +1077,7 @@
                 sortedImages.forEach((image, index) => {
                     const thumbnail = document.createElement('div');
                     thumbnail.className = 'thumbnail-item';
+                    thumbnail.draggable = true;
                     
                     const img = document.createElement('img');
                     img.src = image.img.src;
@@ -935,10 +1087,43 @@
                     name.className = 'thumbnail-name';
                     name.textContent = image.name;
                     
+                    // 创建删除按钮
+                    const removeBtn = document.createElement('button');
+                    removeBtn.className = 'remove-btn';
+                    removeBtn.innerHTML = '&times;';
+                    removeBtn.title = '移除这张图片';
+                    removeBtn.onclick = (e) => {
+                        e.stopPropagation(); // 防止拖拽事件
+                        removeImage(image);
+                    };
+                    
                     thumbnail.appendChild(img);
                     thumbnail.appendChild(name);
+                    thumbnail.appendChild(removeBtn);
                     thumbnailContainer.appendChild(thumbnail);
                 });
+            }
+            
+            // 移除指定图片
+            function removeImage(imageToRemove) {
+                // 从主图片数组中移除
+                images = images.filter(img => img !== imageToRemove);
+                
+                // 从排序数组中也移除
+                sortedImages = sortedImages.filter(img => img !== imageToRemove);
+                
+                updateThumbnails();
+                updateImageCount();
+                
+                if (images.length === 0) {
+                    processBtn.disabled = true;
+                    downloadBtn.disabled = true;
+                    canvas.width = 0;
+                    canvas.height = 0;
+                    previewSize.textContent = '';
+                }
+                
+                showNotification('图片已移除');
             }
             
             // 自然排序算法修复
