@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>图片拼接工具1.4 - 增强版</title>
+    <title>图片拼接工具1.5 - 增强版</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
@@ -709,6 +709,7 @@
             gap: 10px;
             margin-bottom: 10px;
             justify-content: center;
+            flex-wrap: wrap;
         }
         
         .crop-action-btn {
@@ -718,6 +719,7 @@
             border: none;
             border-radius: 4px;
             cursor: pointer;
+            margin: 5px;
         }
         
         .crop-action-btn.confirm {
@@ -771,7 +773,7 @@
 <body>
     <div class="container">
         <header>
-            <h1><i class="fas fa-image"></i> 图片拼接工具<span class="version-badge">v1.4</span></h1>
+            <h1><i class="fas fa-image"></i> 图片拼接工具<span class="version-badge">v1.5</span></h1>
             <p class="subtitle">在本地浏览器中实现基本图像拼接功能：支持多图批量处理、多种拼接模式、自定义尺寸和背景处理</p>
         </header>
         
@@ -980,7 +982,7 @@
         </div>
         
         <footer>
-            <p>图片拼接工具 v1.4 | 基于HTML5 Canvas技术 | 本地运行无需服务器 | © 2025</p>
+            <p>图片拼接工具 v1.5 | 基于HTML5 Canvas技术 | 本地运行无需服务器 | © 2025</p>
         </footer>
     </div>
 
@@ -1008,6 +1010,7 @@
                     <div id="overlayLeft" class="overlay-outside" style="display: none;"></div>
                 </div>
                 <div class="crop-controls">
+                    <button class="crop-action-btn" id="presetVRCBtn">VRC预设</button>
                     <button class="crop-action-btn cancel" id="cancelCropBtn">取消裁剪</button>
                     <button class="crop-action-btn confirm" id="confirmCropBtn">确认裁剪</button>
                 </div>
@@ -1065,6 +1068,7 @@
             const cropCloseBtn = document.getElementById('cropCloseBtn');
             const cancelCropBtn = document.getElementById('cancelCropBtn');
             const confirmCropBtn = document.getElementById('confirmCropBtn');
+            const presetVRCBtn = document.getElementById('presetVRCBtn');
             
             // 全局变量
             let images = [];
@@ -1815,6 +1819,33 @@
                 overlayLeft.style.display = 'none';
             }
 
+            // VRC预设功能
+            function applyVRCPreset() {
+                // VRC预设：X: 64, Y: 69, W: 1920, H: 1080
+                const presetX = 64;
+                const presetY = 69;
+                const presetWidth = 1920;
+                const presetHeight = 1080;
+                
+                // 检查图片是否足够大以应用预设
+                if (cropData.originalWidth < presetX + presetWidth || cropData.originalHeight < presetY + presetHeight) {
+                    showNotification('图片尺寸不足以应用VRC预设！', true);
+                    return;
+                }
+                
+                // 更新裁剪数据
+                cropData.startX = presetX;
+                cropData.startY = presetY;
+                cropData.width = presetWidth;
+                cropData.height = presetHeight;
+                
+                // 更新UI
+                updateCropBox();
+                updateOverlay();
+                
+                showNotification('已应用VRC预设');
+            }
+
             // 点击模态框外部关闭
             window.onclick = function(event) {
                 if (event.target === cropModal) {
@@ -2040,6 +2071,7 @@
                 cropCloseBtn.addEventListener('click', closeCropModal);
                 cancelCropBtn.addEventListener('click', closeCropModal);
                 confirmCropBtn.addEventListener('click', confirmCrop);
+                presetVRCBtn.addEventListener('click', applyVRCPreset);
 
                 // 排序按钮
                 sortAscBtn.addEventListener('click', () => {
