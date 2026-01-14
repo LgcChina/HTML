@@ -172,6 +172,7 @@
             box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
             aspect-ratio: 1;
             cursor: move;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
         
         .thumbnail-item img {
@@ -198,18 +199,26 @@
             position: absolute;
             top: 5px;
             right: 5px;
-            background: rgba(231, 29, 54, 0.8);
+            background: rgba(231, 29, 54, 0.9);
             color: white;
-            border: none;
-            border-radius: 50%;
+            border: 2px solid white;
+            border-radius: 4px;
             width: 20px;
             height: 20px;
-            font-size: 0.7rem;
+            font-size: 0.8rem;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
             z-index: 10;
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            transition: all 0.2s ease;
+        }
+        
+        .remove-btn:hover {
+            background: rgba(255, 0, 0, 1);
+            transform: scale(1.1);
         }
         
         .sort-controls {
@@ -594,12 +603,16 @@
         }
         
         .draggable-active {
-            opacity: 0.5;
+            opacity: 0.7;
+            transform: scale(0.9);
             border: 2px dashed var(--accent);
+            box-shadow: 0 0 15px rgba(76, 201, 240, 0.7);
         }
         
         .drop-highlight {
-            background: rgba(76, 201, 240, 0.4);
+            background: rgba(76, 201, 240, 0.6);
+            transform: scale(1.05);
+            box-shadow: 0 0 10px rgba(76, 201, 240, 0.8);
         }
     </style>
 </head>
@@ -1090,7 +1103,7 @@
                     // 创建删除按钮
                     const removeBtn = document.createElement('button');
                     removeBtn.className = 'remove-btn';
-                    removeBtn.innerHTML = '&times;';
+                    removeBtn.innerHTML = '×';
                     removeBtn.title = '移除这张图片';
                     removeBtn.onclick = (e) => {
                         e.stopPropagation(); // 防止拖拽事件
@@ -1579,6 +1592,11 @@
                     if (processedCanvas) {
                         adjustPreviewZoom();
                     }
+                });
+                
+                // 质量滑块事件
+                qualitySlider.addEventListener('input', () => {
+                    qualityValue.textContent = qualitySlider.value + '%';
                 });
             }
             
