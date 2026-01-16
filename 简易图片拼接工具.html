@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>图片拼接工具4.5-完美增强版 | VRC固定预设+排序按钮配色优化+新图即时显示+尺寸预设快速选</title>
+    <title>图片拼接工具4.7</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
@@ -396,7 +396,7 @@
             order: 3;
             width: 600px;
             height: 400px;
-            overflow: auto;
+            overflow: hidden;
             background: rgba(0, 0, 0, 0.2);
             border-radius: 10px;
             display: flex;
@@ -404,6 +404,10 @@
             align-items: center;
             padding: 20px;
             position: relative;
+            cursor: grab;
+        }
+        .result-preview:active {
+            cursor: grabbing;
         }
         
         canvas {
@@ -413,6 +417,8 @@
             border-radius: 8px;
             background: rgba(0, 0, 0, 0.2);
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            position: relative;
+            transition: transform 0.1s ease;
         }
         
         .preview-controls {
@@ -621,16 +627,16 @@ align-items: center;
             position: absolute;
             top: 0;
 left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(76, 201, 240, 0.2);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 8px;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            pointer-events: none;
+right: 0;
+bottom: 0;
+background: rgba(76, 201, 240, 0.2);
+display: flex;
+align-items: center;
+justify-content: center;
+border-radius: 8px;
+opacity: 0;
+transition: opacity 0.3s ease;
+pointer-events: none;
         }
         
         .upload-area.drag-over .drag-overlay {
@@ -734,6 +740,16 @@ align-items: center;
             margin-bottom: 10px;
             justify-content: center;
             flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .crop-preset-select {
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            margin: 5px;
+            min-width: 180px;
+            color:#333;
         }
         
         .crop-action-btn {
@@ -796,8 +812,8 @@ align-items: center;
 <body>
     <div class="container">
         <header>
-            <h1><i class="fas fa-image"></i> 图片拼接工具<span class="version-badge">v4.5-完美增强版</span></h1>
-            <p class="subtitle">高效图片拼接 | 拖拽排序 | 精准裁剪 | 本地运行无依赖 | 新图上传即时显示 | 尺寸预设快速选</p>
+            <h1><i class="fas fa-image"></i> 图片拼接工具<span class="version-badge">v4.7</span></h1>
+            <p class="subtitle">高效图片拼接 | 拖拽排序 | 精准比例裁剪 | 本地运行无依赖 | 新图上传即时显示 | 尺寸预设快速选</p>
         </header>
         
         <div class="main-content">
@@ -856,17 +872,17 @@ align-items: center;
                         <div id="gridControls" style="display: none;">
                             <div class="option-row">
                                 <label for="colsPerRow">每行图片数</label>
-                                <input type="number" id="colsPerRow" min="1" value="3">
+                                <input type="number" id="colsPerRow" min="1" max="99999" value="3">
                             </div>
                             <div class="option-row">
                                 <label for="rowsPerCol">每列图片数</label>
-                                <input type="number" id="rowsPerCol" min="1" value="3">
+                                <input type="number" id="rowsPerCol" min="1" max="99999" value="3">
                             </div>
                         </div>
                         
                         <div class="option-row">
                             <label for="spacing">图片间距</label>
-                            <input type="number" id="spacing" min="0" value="0">
+                            <input type="number" id="spacing" min="0" max="99999" value="0">
                         </div>
                     </div>
                     
@@ -892,7 +908,6 @@ align-items: center;
                             <input type="checkbox" id="uniformSize">
                         </div>
                         <div id="sizeControls" style="display: none; margin-top: 10px;">
-                            <!-- 新增：尺寸预设下拉选择框 -->
                             <div class="option-row" style="margin-bottom: 10px;">
                                 <label for="sizePreset">快速预设尺寸</label>
                                 <select id="sizePreset">
@@ -907,9 +922,9 @@ align-items: center;
                             <div class="option-row">
                                 <label></label>
                                 <div class="size-controls">
-                                    <input type="number" id="imgWidth" min="1" value="128" placeholder="宽度">
+                                    <input type="number" id="imgWidth" min="1" max="99999" value="128" placeholder="宽度">
                                     <span style="margin: 0 5px;"></span>
-                                    <input type="number" id="imgHeight" min="1" value="128" placeholder="高度">
+                                    <input type="number" id="imgHeight" min="1" max="99999" value="128" placeholder="高度">
                                     <button class="lock-btn" id="lockBtn"><i class="fas fa-lock-open"></i></button>
                                 </div>
                             </div>
@@ -951,11 +966,9 @@ align-items: center;
                 <div class="result-container">
                     <h3 class="panel-title"><i class="fas fa-image"></i> 拼接结果预览</h3>
                     <div id="previewSize"></div>
-                    <div class="result-preview">
+                    <div class="result-preview" id="previewContainer">
                         <div class="preview-controls">
-                            <button class="preview-btn" id="zoomInBtn" title="放大"><i class="fas fa-search-plus"></i></button>
-                            <button class="preview-btn" id="zoomOutBtn" title="缩小"><i class="fas fa-search-minus"></i></button>
-                            <button class="preview-btn" id="resetZoomBtn" title="重置缩放"><i class="fas fa-sync-alt"></i></button>
+                            <button class="preview-btn" id="resetZoomBtn" title="重置居中"><i class="fas fa-sync-alt"></i></button>
                         </div>
                         <canvas id="resultCanvas"></canvas>
                     </div>
@@ -1008,8 +1021,8 @@ align-items: center;
                 </div>
                 <div class="feature-card">
                     <i class="fas fa-crop-alt"></i>
-                    <h3>永久编辑</h3>
-                    <p>对任意图片裁剪编辑，永不丢失原始路径，裁剪结果实时生效</p>
+                    <h3>专业裁剪</h3>
+                    <p>自由裁剪+比例锁定裁剪，含VRC预设/1:1/16:9/9:16/4:3，裁剪结果实时生效</p>
                 </div>
                 <div class="feature-card">
                     <i class="fas fa-bolt"></i>
@@ -1020,7 +1033,7 @@ align-items: center;
         </div>
         
         <footer>
-            <p>图片拼接工具 v4.5-完美增强版 | 基于HTML5 Canvas技术 | 本地运行无需服务器 | © 2025</p>
+            <p>图片拼接工具 v4.7-专业裁剪增强版 | 基于HTML5 Canvas技术 | 本地运行无需服务器 | © 2025</p>
         </footer>
     </div>
 
@@ -1047,12 +1060,19 @@ align-items: center;
                     <div id="overlayLeft" class="overlay-outside" style="display: none;"></div>
                 </div>
                 <div class="crop-controls">
-                    <button class="crop-action-btn" id="presetVRCBtn">VRC预设 (64,69,1920,1080)</button>
+                    <select id="cropPresetSelect" class="crop-preset-select">
+                        <option value="free">自由裁剪 (默认，无比例锁定)</option>
+                        <option value="vrc">VRC 预设 (拍立得)</option>
+                        <option value="1:1">1:1 正方形</option>
+                        <option value="16:9">16:9 标准横屏</option>
+                        <option value="9:16">9:16 手机竖屏</option>
+                        <option value="4:3">4:3 经典比例</option>
+                    </select>
                     <button class="crop-action-btn cancel" id="cancelCropBtn">取消裁剪</button>
                     <button class="crop-action-btn confirm" id="confirmCropBtn">确认裁剪</button>
                 </div>
                 <div class="crop-info">
-                    <p>拖拽裁剪框或拖动边角调整裁剪区域，完成后点击"确认裁剪"</p>
+                    <p>拖拽裁剪框或拖动边角调整裁剪区域，选择比例后将自动锁定宽高比</p>
                     <p>当前裁剪区域: <span id="cropInfo">全图</span></p>
                 </div>
             </div>
@@ -1089,11 +1109,9 @@ align-items: center;
             const qualityValue = document.getElementById('qualityValue');
             const previewSize = document.getElementById('previewSize');
             const lockBtn = document.getElementById('lockBtn');
-            const zoomInBtn = document.getElementById('zoomInBtn');
-            const zoomOutBtn = document.getElementById('zoomOutBtn');
             const resetZoomBtn = document.getElementById('resetZoomBtn');
-            // 新增：获取尺寸预设下拉框
             const sizePreset = document.getElementById('sizePreset');
+            const previewContainer = document.getElementById('previewContainer');
             
             const cropModal = document.getElementById('cropModal');
             const cropCanvas = document.getElementById('cropCanvas');
@@ -1106,7 +1124,7 @@ align-items: center;
             const cropCloseBtn = document.getElementById('cropCloseBtn');
             const cancelCropBtn = document.getElementById('cancelCropBtn');
             const confirmCropBtn = document.getElementById('confirmCropBtn');
-            const presetVRCBtn = document.getElementById('presetVRCBtn');
+            const cropPresetSelect = document.getElementById('cropPresetSelect');
             
             let images = [];
             let sortedImages = [];
@@ -1130,9 +1148,17 @@ align-items: center;
                 isResizing: false,
                 resizeHandle: null,
                 originalWidth: 0,
-                originalHeight: 0
+                originalHeight: 0,
+                aspectRatio: null,
+                currentPreset: 'free'
             };
             let isManualSortActive = false;
+            // 预览图拖拽相关变量
+            let isCanvasDragging = false;
+            let canvasOffsetX = 0;
+            let canvasOffsetY = 0;
+            let startMouseX = 0;
+            let startMouseY = 0;
 
             function init() {
                 dropZone.addEventListener('click', () => fileInput.click());
@@ -1150,6 +1176,10 @@ align-items: center;
                 lockAspectRatio = false;
                 setupThumbnailDragAndDrop();
                 manualSortBtn.addEventListener('click', toggleManualSortMode);
+                // 初始化预览图拖拽和滚轮缩放
+                initCanvasDragAndZoom();
+                // 初始化数字输入框限制
+                initNumberInputLimit();
             }
             
             function preventDefaults(e) {
@@ -1487,16 +1517,70 @@ align-items: center;
                 }, 3000);
             }
             
-            function adjustPreviewZoom() {
-                if (!canvasWidth || !canvasHeight) return;
-                const previewContainer = document.querySelector('.result-preview');
-                const containerWidth = previewContainer.clientWidth - 40;
-                const containerHeight = previewContainer.clientHeight - 40;
-                const scaleX = containerWidth / canvasWidth;
-                const scaleY = containerHeight / canvasHeight;
-                const initialScale = Math.min(scaleX, scaleY, 1);
-                canvas.style.width = (canvasWidth * initialScale * zoomLevel) + 'px';
-                canvas.style.height = (canvasHeight * initialScale * zoomLevel) + 'px';
+            // 初始化预览图拖拽和滚轮缩放功能
+            function initCanvasDragAndZoom() {
+                previewContainer.addEventListener('mousedown', (e) => {
+                    if (!processedCanvas) return;
+                    isCanvasDragging = true;
+                    startMouseX = e.clientX - canvasOffsetX;
+                    startMouseY = e.clientY - canvasOffsetY;
+                    previewContainer.style.cursor = 'grabbing';
+                });
+
+                document.addEventListener('mousemove', (e) => {
+                    if (!isCanvasDragging || !processedCanvas) return;
+                    canvasOffsetX = e.clientX - startMouseX;
+                    canvasOffsetY = e.clientY - startMouseY;
+                    canvas.style.transform = `translate(${canvasOffsetX}px, ${canvasOffsetY}px) scale(${zoomLevel})`;
+                });
+
+                document.addEventListener('mouseup', () => {
+                    isCanvasDragging = false;
+                    previewContainer.style.cursor = 'grab';
+                });
+
+                previewContainer.addEventListener('wheel', (e) => {
+                    e.preventDefault();
+                    if (!processedCanvas) return;
+                    const delta = e.deltaY > 0 ? -0.1 : 0.1;
+                    const newZoomLevel = Math.max(0.1, Math.min(5, zoomLevel + delta));
+                    const rect = canvas.getBoundingClientRect();
+                    const mouseXInCanvas = e.clientX - rect.left;
+                    const mouseYInCanvas = e.clientY - rect.top;
+                    const zoomRatio = newZoomLevel / zoomLevel;
+                    
+                    canvasOffsetX -= mouseXInCanvas * (zoomRatio - 1);
+                    canvasOffsetY -= mouseYInCanvas * (zoomRatio - 1);
+                    zoomLevel = newZoomLevel;
+                    
+                    canvas.style.transform = `translate(${canvasOffsetX}px, ${canvasOffsetY}px) scale(${zoomLevel})`;
+                }, { passive: false });
+
+                resetZoomBtn.addEventListener('click', () => {
+                    zoomLevel = 1;
+                    canvasOffsetX = 0;
+                    canvasOffsetY = 0;
+                    canvas.style.transform = `translate(0, 0) scale(1)`;
+                });
+            }
+
+            // 初始化数字输入框限制：只能输入正整数，最大值99999
+            function initNumberInputLimit() {
+                const numberInputs = [colsPerRow, rowsPerCol, spacing, imgWidth, imgHeight];
+                numberInputs.forEach(input => {
+                    input.addEventListener('input', () => {
+                        input.value = input.value.replace(/\D/g, '');
+                        if (input.value === '') input.value = 1;
+                        if (parseInt(input.value) > 99999) input.value = 99999;
+                        if (lockAspectRatio && (input.id === 'imgWidth' || input.id === 'imgHeight')) {
+                            imgHeight.value = imgWidth.value;
+                        }
+                    });
+                    input.addEventListener('keydown', (e) => {
+                        const forbiddenKeys = ['e', 'E', '+', '-', '.', ','];
+                        if (forbiddenKeys.includes(e.key)) e.preventDefault();
+                    });
+                });
             }
 
             function openCropEditorByTempId(tempId) {
@@ -1532,6 +1616,9 @@ align-items: center;
                     cropData.startY = 0;
                     cropData.width = displayWidth;
                     cropData.height = displayHeight;
+                    cropData.aspectRatio = null;
+                    cropData.currentPreset = 'free';
+                    cropPresetSelect.value = 'free';
                     updateCropBox();
                     cropBox.style.display = 'block';
                     updateOverlay();
@@ -1589,6 +1676,60 @@ align-items: center;
                         cropData.resizeHandle = e.target.className.split(' ')[1];
                     });
                 });
+                cropPresetSelect.addEventListener('change', handleCropPresetChange);
+            }
+            
+            function handleCropPresetChange() {
+                const preset = cropPresetSelect.value;
+                cropData.currentPreset = preset;
+                cropData.aspectRatio = null;
+                
+                if (preset === 'free') {
+                    showNotification('✅ 已切换为【自由裁剪】，无比例锁定');
+                    cropData.aspectRatio = null;
+                    return;
+                }
+                
+                if (preset === 'vrc') {
+                    cropData.startX = 64;
+                    cropData.startY = 69;
+                    cropData.width = 1920;
+                    cropData.height = 1080;
+                    if(cropData.startX + cropData.width > cropData.originalWidth) cropData.width = cropData.originalWidth - cropData.startX;
+                    if(cropData.startY + cropData.height > cropData.originalHeight) cropData.height = cropData.originalHeight - cropData.startY;
+                    if(cropData.width < 10 || cropData.height <10){
+                        showNotification('⚠ 原图尺寸不足，无法应用VRC预设！', true);
+                        cropData.currentPreset = 'free';
+                        cropPresetSelect.value = 'free';
+                        return;
+                    }
+                    showNotification('✅ 已应用【VRC 固定裁剪预设 (拍立得)】');
+                    updateCropBox();
+                    updateOverlay();
+                    return;
+                }
+                
+                const ratioArr = preset.split(':');
+                const ratioW = parseInt(ratioArr[0]);
+                const ratioH = parseInt(ratioArr[1]);
+                cropData.aspectRatio = ratioW / ratioH;
+                
+                let newWidth = cropData.width;
+                let newHeight = newWidth / cropData.aspectRatio;
+                
+                if(newHeight > cropData.originalHeight) {
+                    newHeight = cropData.originalHeight;
+                    newWidth = newHeight * cropData.aspectRatio;
+                }
+                
+                cropData.width = Math.min(newWidth, cropData.originalWidth);
+                cropData.height = Math.min(newHeight, cropData.originalHeight);
+                cropData.startX = (cropData.originalWidth - cropData.width) / 2;
+                cropData.startY = (cropData.originalHeight - cropData.height) / 2;
+                
+                showNotification(`✅ 已锁定【${preset}】比例，裁剪将保持该比例不变`);
+                updateCropBox();
+                updateOverlay();
             }
 
             function handleCropBoxMouseDown(e) {
@@ -1615,7 +1756,7 @@ align-items: center;
                     cropData.startY = Math.max(0, Math.min(origY, maxY));
                     updateCropBox();
                     updateOverlay();
-                } else if (cropData.isResizing) {
+                } else if (cropData.isResizing && cropData.resizeHandle) {
                     const containerRect = cropCanvas.getBoundingClientRect();
                     const x = e.clientX - containerRect.left;
                     const y = e.clientY - containerRect.top;
@@ -1623,68 +1764,41 @@ align-items: center;
                     const scaleY = cropCanvas.height / cropData.originalHeight;
                     const origX = x / scaleX;
                     const origY = y / scaleY;
+                    
+                    let newWidth = cropData.width;
+                    let newHeight = cropData.height;
+                    let newStartX = cropData.startX;
+                    let newStartY = cropData.startY;
+
                     switch (cropData.resizeHandle) {
-                        case 'crop-box-handle-nw':
-                            const newWidthNW = cropData.width + (cropData.startX - origX);
-                            const newHeightNW = cropData.height + (cropData.startY - origY);
-                            if (newWidthNW > 10 && newHeightNW > 10) {
-                                cropData.width = newWidthNW;
-                                cropData.height = newHeightNW;
-                                cropData.startX = origX;
-                                cropData.startY = origY;
-                            }
-                            break;
-                        case 'crop-box-handle-n':
-                            const newHeightN = cropData.height + (cropData.startY - origY);
-                            if (newHeightN > 10) {
-                                cropData.height = newHeightN;
-                                cropData.startY = origY;
-                            }
-                            break;
-                        case 'crop-box-handle-ne':
-                            const newWidthNE = origX - cropData.startX;
-                            const newHeightNE = cropData.height + (cropData.startY - origY);
-                            if (newWidthNE > 10 && newHeightNE > 10) {
-                                cropData.width = newWidthNE;
-                                cropData.height = newHeightNE;
-                                cropData.startY = origY;
-                            }
-                            break;
-                        case 'crop-box-handle-w':
-                            const newWidthW = cropData.width + (cropData.startX - origX);
-                            if (newWidthW > 10) {
-                                cropData.width = newWidthW;
-                                cropData.startX = origX;
-                            }
-                            break;
-                        case 'crop-box-handle-e':
-                            const newWidthE = origX - cropData.startX;
-                            if (newWidthE > 10) cropData.width = newWidthE;
-                            break;
-                        case 'crop-box-handle-sw':
-                            const newWidthSW = cropData.width + (cropData.startX - origX);
-                            const newHeightSW = origY - cropData.startY;
-                            if (newWidthSW > 10 && newHeightSW > 10) {
-                                cropData.width = newWidthSW;
-                                cropData.height = newHeightSW;
-                                cropData.startX = origX;
-                            }
-                            break;
-                        case 'crop-box-handle-s':
-                            const newHeightS = origY - cropData.startY;
-                            if (newHeightS > 10) cropData.height = newHeightS;
-                            break;
-                        case 'crop-box-handle-se':
-                            const newWidthSE = origX - cropData.startX;
-                            const newHeightSE = origY - cropData.startY;
-                            if (newWidthSE > 10 && newHeightSE > 10) {
-                                cropData.width = newWidthSE;
-                                cropData.height = newHeightSE;
-                            }
-                            break;
+                        case 'crop-box-handle-nw': newWidth = cropData.width + (cropData.startX - origX); newHeight = cropData.height + (cropData.startY - origY); newStartX = origX; newStartY = origY; break;
+                        case 'crop-box-handle-n': newHeight = cropData.height + (cropData.startY - origY); newStartY = origY; break;
+                        case 'crop-box-handle-ne': newWidth = origX - cropData.startX; newHeight = cropData.height + (cropData.startY - origY); newStartY = origY; break;
+                        case 'crop-box-handle-w': newWidth = cropData.width + (cropData.startX - origX); newStartX = origX; break;
+                        case 'crop-box-handle-e': newWidth = origX - cropData.startX; break;
+                        case 'crop-box-handle-sw': newWidth = cropData.width + (cropData.startX - origX); newHeight = origY - cropData.startY; newStartX = origX; break;
+                        case 'crop-box-handle-s': newHeight = origY - cropData.startY; break;
+                        case 'crop-box-handle-se': newWidth = origX - cropData.startX; newHeight = origY - cropData.startY; break;
                     }
-                    if (cropData.startX + cropData.width > cropData.originalWidth) cropData.width = cropData.originalWidth - cropData.startX;
-                    if (cropData.startY + cropData.height > cropData.originalHeight) cropData.height = cropData.originalHeight - cropData.startY;
+
+                    newWidth = Math.max(10, Math.min(newWidth, cropData.originalWidth - newStartX));
+                    newHeight = Math.max(10, Math.min(newHeight, cropData.originalHeight - newStartY));
+
+                    if (cropData.aspectRatio) {
+                        if (['crop-box-handle-nw','crop-box-handle-ne','crop-box-handle-sw','crop-box-handle-se','crop-box-handle-e','crop-box-handle-w'].includes(cropData.resizeHandle)) {
+                            newHeight = newWidth / cropData.aspectRatio;
+                        } else {
+                            newWidth = newHeight * cropData.aspectRatio;
+                        }
+                        newWidth = Math.max(10, Math.min(newWidth, cropData.originalWidth - newStartX));
+                        newHeight = Math.max(10, Math.min(newHeight, cropData.originalHeight - newStartY));
+                    }
+
+                    cropData.width = newWidth;
+                    cropData.height = newHeight;
+                    cropData.startX = newStartX;
+                    cropData.startY = newStartY;
+                    
                     updateCropBox();
                     updateOverlay();
                 }
@@ -1745,28 +1859,7 @@ align-items: center;
                 overlayBottom.style.display = 'none';
                 overlayLeft.style.display = 'none';
                 currentEditIndex = -1;
-            }
-
-            function applyVRCPreset() {
-                cropData.startX = 64;
-                cropData.startY = 69;
-                cropData.width = 1920;
-                cropData.height = 1080;
-                
-                if(cropData.startX + cropData.width > cropData.originalWidth) {
-                    cropData.width = cropData.originalWidth - cropData.startX;
-                }
-                if(cropData.startY + cropData.height > cropData.originalHeight) {
-                    cropData.height = cropData.originalHeight - cropData.startY;
-                }
-                if(cropData.width < 10 || cropData.height <10){
-                    showNotification('原图尺寸不足，无法应用VRC预设！', true);
-                    return;
-                }
-                
-                updateCropBox();
-                updateOverlay();
-                showNotification('✅ 已应用VRC固定预设 (64,69,1920,1080)');
+                cropPresetSelect.removeEventListener('change', handleCropPresetChange);
             }
 
             window.onclick = function(event) {
@@ -1788,12 +1881,30 @@ align-items: center;
                     const fillTransparent = document.getElementById('fillTransparent').checked;
                     const useUniformSize = uniformSize.checked;
                     const sizeMode = document.getElementById('sizeMode').value;
-                    let uniformWidth = 0;
-                    let uniformHeight = 0;
+                    let uniformWidth = 128;
+                    let uniformHeight = 128;
+                    
+                    // 空值容错处理：自动填充默认尺寸128×128并提示
                     if (useUniformSize) {
-                        uniformWidth = parseInt(document.getElementById('imgWidth').value) || 128;
-                        uniformHeight = parseInt(document.getElementById('imgHeight').value) || 128;
+                        const inputW = parseInt(document.getElementById('imgWidth').value);
+                        const inputH = parseInt(document.getElementById('imgHeight').value);
+                        if (!inputW || inputW <=0 || inputW >99999) {
+                            uniformWidth = 128;
+                            document.getElementById('imgWidth').value = 128;
+                        } else {
+                            uniformWidth = inputW;
+                        }
+                        if (!inputH || inputH <=0 || inputH >99999) {
+                            uniformHeight = 128;
+                            document.getElementById('imgHeight').value = 128;
+                        } else {
+                            uniformHeight = inputH;
+                        }
+                        if(inputW <=0 || inputH <=0){
+                            showNotification('⚠ 未设置图片尺寸，已自动填充默认尺寸：128×128', true);
+                        }
                     }
+                    
                     canvasWidth = 0;
                     canvasHeight = 0;
                     let rows = 1;
@@ -1889,7 +2000,9 @@ align-items: center;
                     previewSize.textContent = `总尺寸: ${canvasWidth} × ${canvasHeight} 像素`;
                     previewSize.style.display = 'block';
                     zoomLevel = 1;
-                    adjustPreviewZoom();
+                    canvasOffsetX = 0;
+                    canvasOffsetY = 0;
+                    canvas.style.transform = `translate(0,0) scale(1)`;
                     showNotification('✅ 图片拼接完成！严格按照手动排序顺序生成 ✔');
                 } catch (error) {
                     console.error('处理图片时出错:', error);
@@ -1922,7 +2035,6 @@ align-items: center;
                 cropCloseBtn.addEventListener('click', closeCropModal);
                 cancelCropBtn.addEventListener('click', closeCropModal);
                 confirmCropBtn.addEventListener('click', confirmCrop);
-                presetVRCBtn.addEventListener('click', applyVRCPreset);
                 sortAscBtn.addEventListener('click', () => {
                     currentSortMethod = 'asc';
                     applyCurrentSortMethod();
@@ -1985,7 +2097,6 @@ align-items: center;
                     previewSize.textContent = '';
                     canvas.width = 0;
                     canvas.height = 0;
-                    // 新增：重置尺寸预设下拉框
                     sizePreset.value = '';
                     imgWidth.value = 128;
                     imgHeight.value = 128;
@@ -2002,34 +2113,23 @@ align-items: center;
                 imgHeight.addEventListener('input', () => {
                     if (lockAspectRatio) imgWidth.value = imgHeight.value;
                 });
-                zoomInBtn.addEventListener('click', () => {
-                    zoomLevel *= 1.2;
-                    adjustPreviewZoom();
-                });
-                zoomOutBtn.addEventListener('click', () => {
-                    zoomLevel /= 1.2;
-                    adjustPreviewZoom();
-                });
-                resetZoomBtn.addEventListener('click', () => {
-                    zoomLevel = 1;
-                    adjustPreviewZoom();
-                });
                 window.addEventListener('resize', () => {
-                    if (processedCanvas) adjustPreviewZoom();
+                    if (processedCanvas) {
+                        canvasOffsetX = 0;
+                        canvasOffsetY = 0;
+                        canvas.style.transform = `translate(0,0) scale(${zoomLevel})`;
+                    }
                 });
                 qualitySlider.addEventListener('input', () => {
                     qualityValue.textContent = qualitySlider.value + '%';
                 });
-                // ========== 核心新增：尺寸预设下拉框 选择事件 ==========
                 sizePreset.addEventListener('change', function(){
                     if(this.value === '') return;
                     const selectedOption = this.options[this.selectedIndex];
                     const presetWidth = selectedOption.dataset.width;
                     const presetHeight = selectedOption.dataset.height;
-                    // 填充宽高输入框
                     document.getElementById('imgWidth').value = presetWidth;
                     document.getElementById('imgHeight').value = presetHeight;
-                    // 提示选择成功
                     showNotification(`✅ 已选择尺寸预设：${presetWidth} × ${presetHeight}`);
                 });
             }
