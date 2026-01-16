@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>图片拼接工具4.3-完美优化版 | VRC固定预设+排序按钮配色优化</title>
+    <title>图片拼接工具4.5-完美增强版 | VRC固定预设+排序按钮配色优化+新图即时显示+尺寸预设快速选</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
@@ -284,10 +284,7 @@
         .btn-clear-red {
             background: linear-gradient(to right, var(--danger), var(--danger-deep)) !important;
         }
-        .btn-clear-red:hover {
-            background: linear-gradient(to right, var(--danger-deep), var(--danger)) !important;
-        }
-
+        
         .control-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -708,7 +705,7 @@ left: 0;
         .crop-container {
             display: flex;
             flex-direction: column;
-            align-items: center;
+align-items: center;
         }
         
         .crop-image-container {
@@ -799,8 +796,8 @@ left: 0;
 <body>
     <div class="container">
         <header>
-            <h1><i class="fas fa-image"></i> 图片拼接工具<span class="version-badge">v4.3-完美优化版</span></h1>
-            <p class="subtitle">高效图片拼接 | 拖拽排序 | 精准裁剪 | 本地运行无依赖</p>
+            <h1><i class="fas fa-image"></i> 图片拼接工具<span class="version-badge">v4.5-完美增强版</span></h1>
+            <p class="subtitle">高效图片拼接 | 拖拽排序 | 精准裁剪 | 本地运行无依赖 | 新图上传即时显示 | 尺寸预设快速选</p>
         </header>
         
         <div class="main-content">
@@ -895,6 +892,18 @@ left: 0;
                             <input type="checkbox" id="uniformSize">
                         </div>
                         <div id="sizeControls" style="display: none; margin-top: 10px;">
+                            <!-- 新增：尺寸预设下拉选择框 -->
+                            <div class="option-row" style="margin-bottom: 10px;">
+                                <label for="sizePreset">快速预设尺寸</label>
+                                <select id="sizePreset">
+                                    <option value="">-- 选择预设尺寸 --</option>
+                                    <option value="512x512" data-width="512" data-height="512">512 × 512</option>
+                                    <option value="1024x1024" data-width="1024" data-height="1024">1024 × 1024</option>
+                                    <option value="2048x2048" data-width="2048" data-height="2048">2048 × 2048</option>
+                                    <option value="1920x1080" data-width="1920" data-height="1080">1920 × 1080 (16:9)</option>
+                                    <option value="3840x2160" data-width="3840" data-height="2160">3840 × 2160 (4K)</option>
+                                </select>
+                            </div>
                             <div class="option-row">
                                 <label></label>
                                 <div class="size-controls">
@@ -970,7 +979,7 @@ left: 0;
                 <div class="feature-card">
                     <i class="fas fa-expand-arrows-alt"></i>
                     <h3>统一尺寸</h3>
-                    <p>支持将所有图片统一为相同尺寸，提供多种缩放裁剪选项</p>
+                    <p>支持将所有图片统一为相同尺寸，带快速预设+手动微调，多种缩放裁剪选项</p>
                 </div>
                 <div class="feature-card">
                     <i class="fas fa-fill-drip"></i>
@@ -1002,11 +1011,16 @@ left: 0;
                     <h3>永久编辑</h3>
                     <p>对任意图片裁剪编辑，永不丢失原始路径，裁剪结果实时生效</p>
                 </div>
+                <div class="feature-card">
+                    <i class="fas fa-bolt"></i>
+                    <h3>即时显示</h3>
+                    <p>上传/拖拽新图片实时显示，无需点击排序按钮，体验流畅无卡顿</p>
+                </div>
             </div>
         </div>
         
         <footer>
-            <p>图片拼接工具 v4.3-完美优化版 | 基于HTML5 Canvas技术 | 本地运行无需服务器 | © 2025</p>
+            <p>图片拼接工具 v4.5-完美增强版 | 基于HTML5 Canvas技术 | 本地运行无需服务器 | © 2025</p>
         </footer>
     </div>
 
@@ -1078,6 +1092,8 @@ left: 0;
             const zoomInBtn = document.getElementById('zoomInBtn');
             const zoomOutBtn = document.getElementById('zoomOutBtn');
             const resetZoomBtn = document.getElementById('resetZoomBtn');
+            // 新增：获取尺寸预设下拉框
+            const sizePreset = document.getElementById('sizePreset');
             
             const cropModal = document.getElementById('cropModal');
             const cropCanvas = document.getElementById('cropCanvas');
@@ -1249,10 +1265,14 @@ left: 0;
             }
 
             function syncSortedImagesByCustomIds(isForce = false) {
-                if(customSortedIds.length > 0 && images.length > 0 && (isForce || sortedImages.length === 0)) {
+                if((customSortedIds.length > 0 || isForce) && images.length > 0) {
                     customSortedIds = customSortedIds
                         .filter(tempId => images.some(img => img.tempId === tempId))
                         .filter((v,i,a)=>a.indexOf(v)===i);
+                    
+                    const newImageIds = images.map(img => img.tempId).filter(id => !customSortedIds.includes(id));
+                    customSortedIds = [...customSortedIds, ...newImageIds];
+                    
                     sortedImages = customSortedIds.map(tempId => images.find(img => img.tempId === tempId)).filter(Boolean);
                 }
                 if(sortedImages.length === 0 && images.length > 0){
@@ -1280,7 +1300,11 @@ left: 0;
                 
                 for (let i = 0; i < files.length; i++) {
                     const file = files[i];
-                    if (!file.type.match('image.*') || uploadedNames.includes(file.name)) continue;
+                    if (!file.type.match('image.*')) continue;
+                    if (uploadedNames.includes(file.name)) {
+                        showNotification(`⚠ 已跳过重复图片：${file.name}`, true);
+                        continue;
+                    }
                     
                     validCount++;
                     loadPromises.push(new Promise((resolve) => {
@@ -1316,7 +1340,7 @@ left: 0;
                 }
                 
                 Promise.all(loadPromises).then(() => {
-                    syncSortedImagesByCustomIds();
+                    syncSortedImagesByCustomIds(true);
                     updateThumbnails();
                     updateImageCount();
                     if (images.length > 0) {
@@ -1339,7 +1363,7 @@ left: 0;
                     const thumbnail = document.createElement('div');
                     thumbnail.className = 'thumbnail-item';
                     thumbnail.draggable = isManualSortActive;
-                    if(isManualSortActive) thumbnail.classList.add('draggable');
+                    thumbnail.classList.toggle('draggable', isManualSortActive);
                     thumbnail.dataset.tempid = image.tempId;
                     
                     const img = document.createElement('img');
@@ -1961,6 +1985,10 @@ left: 0;
                     previewSize.textContent = '';
                     canvas.width = 0;
                     canvas.height = 0;
+                    // 新增：重置尺寸预设下拉框
+                    sizePreset.value = '';
+                    imgWidth.value = 128;
+                    imgHeight.value = 128;
                     showNotification('设置已重置');
                 });
                 lockBtn.addEventListener('click', () => {
@@ -1992,6 +2020,18 @@ left: 0;
                 qualitySlider.addEventListener('input', () => {
                     qualityValue.textContent = qualitySlider.value + '%';
                 });
+                // ========== 核心新增：尺寸预设下拉框 选择事件 ==========
+                sizePreset.addEventListener('change', function(){
+                    if(this.value === '') return;
+                    const selectedOption = this.options[this.selectedIndex];
+                    const presetWidth = selectedOption.dataset.width;
+                    const presetHeight = selectedOption.dataset.height;
+                    // 填充宽高输入框
+                    document.getElementById('imgWidth').value = presetWidth;
+                    document.getElementById('imgHeight').value = presetHeight;
+                    // 提示选择成功
+                    showNotification(`✅ 已选择尺寸预设：${presetWidth} × ${presetHeight}`);
+                });
             }
             
             init();
@@ -1999,4 +2039,3 @@ left: 0;
     </script>
 </body>
 </html>
-
